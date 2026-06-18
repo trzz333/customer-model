@@ -454,3 +454,43 @@ BROWSER VERIFICATION. Claude-in-Chrome confirmed prod (e5e4b8d) renders all
 three tiers correctly. Caught one miss: verdict() in the frozen sim.ts still
 emits "...— tells you which lever to pull first" in the Engine verdict line
 (prose-only, frozen-file). Carried as the open NEXT MOVE.
+
+
+## 2026-06-18 — v1 closed + inline definition-coverage pass
+
+V1 CLOSED. The carried NEXT MOVE (engine-verdict over-narration) is resolved:
+verdict() in the frozen sim.ts dropped the "tells you which lever to pull first"
+coda from the worst-segment line (commit 3c78e3f). Prose-only, one string, no
+math or determinism change; Jeff authorized the one-string exception to the
+freeze by saying to finish v1. typecheck clean, build green.
+
+INLINE DEFINITION COVERAGE (commit b41f69f), from a professor-persona usability
+test. The seven customer archetypes drove every result but were undefined at the
+point of use. Added ARCH_DEF (business.ts): plain-language, no-game-theory,
+one-sentence defs keyed by StratKey, wired as tap-to-define Term popovers at the
+three sites they surface — the per-card "first to leave" line, the red warning
+chips (Warning now carries archKey/archName/archSuffix so the chip name is
+tappable while the percentage stays plain), and every row of the "Show the
+numbers" panel. Also wrapped the "Net churn" and "Tipping" metric labels, folded
+the r0/r12 round-number notation into the tipping and payback hover defs, and
+rewrote the glossary archetype intro to lead with plain behavior and demote the
+Axelrod reference to a closing "you don't need any game theory" aside. / went
+23.7 -> 24.1 kB.
+
+TERM MECHANISM CLARIFIED. The Term component is a click/tap popover (with a
+native title fallback), not a CSS :hover. The embedded tester's "dead hover on
+every term" finding was a Claude-in-Chrome artifact (it hovered, never clicked),
+not a real bug — Jeff confirmed the terms work on click. Fix was coverage, not
+mechanism. Save invariant re-confirmed holding: only the popover carries
+no-print, so each warning chip still prints its full text.
+
+EXTERNAL-AUDIT PROMPTS authored (not committed; they live in chat). A
+professor-persona test prompt (first-year entrepreneurship prof, PhD Marketing,
+no decision-science background — the Teaching tier's exact target user, used as
+the instrument), an updated re-run version correcting hover->click, and a Google
+Antigravity IDE task brief. The Antigravity brief pairs a controlled-browser
+walkthrough in persona with a read-only UI-vs-source coverage cross-check
+(TERM_DEFS/ARCH_DEF vs every render site) that catches the "definition exists but
+isn't wired at a site" defect class a chat tester can't see. Decision: use the
+Antigravity IDE, not the standalone 2.0 app, because the task needs codebase
+reading + browser + artifacts in one place.
