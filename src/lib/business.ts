@@ -84,6 +84,41 @@ export const EXAMPLES: BizInput[] = [
   { name: "Coffee shop", sell: "$5 lattes with a punch-card", price: "hold", value: "par", retention: "loyalty", threat: "hard" },
 ];
 
+// ── Plain-language term definitions (the front-door vocabulary) ──────
+// Single source for the 8th-grade hover defs used inline AND on the
+// standalone glossary page. Keep these short enough to read on hover.
+export const TERM_DEFS = {
+  churn: "Customers leaving or canceling.",
+  retention: "Keeping the customers you already have.",
+  reputation: "How good people think you are. A good reputation brings in new customers by word of mouth.",
+  tipping: "The round where a lot of customers leave at once, instead of a few at a time.",
+  contribution: "The money left from a sale after you subtract what it cost to deliver it.",
+  npv: "What future money is worth today. A dollar next year is worth a little less than a dollar now.",
+  ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is healthy.",
+  payback: "How many rounds until a customer pays back what it cost to get them.",
+  loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
+  present: "People grab a reward now even when waiting a bit would be better.",
+  worlds: "Different kinds of crowds — like loyal regulars versus deal-chasers.",
+  lambda: "Loss aversion (the Greek letter lambda). How many times heavier a loss feels than an equal gain.",
+};
+
+// Ordered, human-labelled view of the same defs for the glossary page.
+// Derived from TERM_DEFS so a definition is never written twice.
+export const GLOSSARY: { term: string; def: string }[] = [
+  { term: "Customer worlds", def: TERM_DEFS.worlds },
+  { term: "Churn", def: TERM_DEFS.churn },
+  { term: "Retention", def: TERM_DEFS.retention },
+  { term: "Reputation", def: TERM_DEFS.reputation },
+  { term: "Tipping point", def: TERM_DEFS.tipping },
+  { term: "Loss aversion", def: TERM_DEFS.loss },
+  { term: "Present bias", def: TERM_DEFS.present },
+  { term: "Lambda (λ)", def: TERM_DEFS.lambda },
+  { term: "Contribution margin", def: TERM_DEFS.contribution },
+  { term: "NPV (net present value)", def: TERM_DEFS.npv },
+  { term: "LTV:CAC", def: TERM_DEFS.ltvcac },
+  { term: "Payback", def: TERM_DEFS.payback },
+];
+
 // ── Customer worlds (the reusable templates) ─────────────────────────
 // A world is a particular mix of the seven archetypes plus how impulsively
 // the crowd chases an immediate rival lure (present bias). λ is NOT set
@@ -577,4 +612,41 @@ export function compareBusinesses(a: BizInput, b: BizInput, worlds: CustomerWorl
     }
   }
   return { perWorld, overall, overallGap, inversion, summary };
+}
+
+
+// ── Per-round CSV export (raw engine rows; the answer-key data dump) ──
+// Flattens the representative (median) run of each swept world into one CSV:
+// the engine's per-round RoundMetric rows, prefixed with the world they came
+// from. This is the displayed result's underlying data, so a professor can
+// load it into a spreadsheet, build a problem set, and check students'
+// reading against the same numbers the cards show. Pure: reads sweeps the UI
+// already computed, touches no engine state. Median run, to match the chart
+// and headline rather than a luckier or unluckier roll.
+const csvCell = (v: string | number): string => {
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+export function runsToCsv(sweeps: WorldSweep[]): string {
+  const header = [
+    "world", "round", "active", "churned_this_round", "exploiting",
+    "revenue_index", "reputation", "churn_rate",
+  ];
+  const lines = [header.join(",")];
+  for (const s of sweeps) {
+    for (const m of s.median.r.rounds) {
+      lines.push([
+        csvCell(s.world.name),
+        m.round,
+        m.active,
+        m.churnedThisRound,
+        m.exploiting,
+        Math.round(m.revenue * 100) / 100,
+        m.reputation,
+        Math.round(m.churnRate * 1000) / 1000,
+      ].join(","));
+    }
+  }
+  return lines.join("\n");
 }

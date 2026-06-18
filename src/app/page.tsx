@@ -23,6 +23,8 @@ import {
   sweepWorld,
   bandPhrase,
   compareBusinesses,
+  runsToCsv,
+  TERM_DEFS,
   DIFFICULTY_NOISE,
   DIFFICULTY_LABEL,
   DIFFICULTY_NOTE,
@@ -70,20 +72,7 @@ function Term({ children, def }: { children: React.ReactNode; def: string }) {
     </span>
   );
 }
-const DEF = {
-  churn: "Customers leaving or canceling.",
-  retention: "Keeping the customers you already have.",
-  reputation: "How good people think you are. A good reputation brings in new customers by word of mouth.",
-  tipping: "The round where a lot of customers leave at once, instead of a few at a time.",
-  contribution: "The money left from a sale after you subtract what it cost to deliver it.",
-  npv: "What future money is worth today. A dollar next year is worth a little less than a dollar now.",
-  ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is healthy.",
-  payback: "How many rounds until a customer pays back what it cost to get them.",
-  loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
-  present: "People grab a reward now even when waiting a bit would be better.",
-  worlds: "Different kinds of crowds — like loyal regulars versus deal-chasers.",
-  lambda: "Loss aversion (the Greek letter lambda). How many times heavier a loss feels than an equal gain.",
-};
+const DEF = TERM_DEFS;
 
 interface EventMark { round: number; label: string; color: string }
 function buildEvents(cfg: SimConfig): EventMark[] {
@@ -504,6 +493,23 @@ export default function Page() {
   }
   const toggleExp = (k: keyof ExportSel) => setExp((e) => ({ ...e, [k]: !e[k] }));
 
+  // Per-round CSV of the displayed run: the engine's own rows for the median
+  // roll of each swept world, the data behind the charts. Raw data dump, so it
+  // carries no verdict/warning text (those live on the results surface); the
+  // save-button invariant governs the printable copy, not this.
+  function downloadCsv() {
+    if (typeof window === "undefined" || derived.sweeps.length === 0) return;
+    const csv = runsToCsv(derived.sweeps);
+    const slug = (ran.biz.name || "customer-model").trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "customer-model";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${slug}-per-round.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function selectView(v: View, e?: Emphasis) { setView(v); if (e) setEmphasis(e); }
   const seg = (active: boolean) => `px-3 py-1.5 text-sm rounded-md transition-colors ${active ? "bg-primary text-white" : "text-muted-fg hover:text-foreground"}`;
 
@@ -519,10 +525,13 @@ export default function Page() {
               Same inputs give the same result, every time: an audit instrument, not a black box.
             </p>
           </div>
-          <div className="no-print shrink-0 inline-flex items-center gap-1 rounded-lg border border-card-border bg-card-muted p-1">
-            <button onClick={() => selectView("class")} className={seg(view === "class")}>Class</button>
-            <button onClick={() => selectView("instructor", "behavioral")} className={seg(instructor && emphasis === "behavioral")}>Instructor</button>
-            <button onClick={() => selectView("instructor", "finance")} className={seg(financeLed)}>Finance focus</button>
+          <div className="no-print shrink-0 flex flex-col items-end gap-1.5">
+            <div className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card-muted p-1">
+              <button onClick={() => selectView("class")} className={seg(view === "class")}>Class</button>
+              <button onClick={() => selectView("instructor", "behavioral")} className={seg(instructor && emphasis === "behavioral")}>Instructor</button>
+              <button onClick={() => selectView("instructor", "finance")} className={seg(financeLed)}>Finance focus</button>
+            </div>
+            <a href="/glossary" className="text-xs text-muted-fg hover:text-foreground underline decoration-dotted underline-offset-2">Glossary ↗</a>
           </div>
         </div>
         <p className="no-print text-xs text-muted-fg mt-2">
@@ -657,6 +666,10 @@ export default function Page() {
               <button onClick={copyWriteup} className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">{copied ? "Copied" : "Copy writeup"}</button>
               <button onClick={copyRunLink} title="Copy a link that reproduces this exact run against the same engine version — the graded answer-key primitive."
                 className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">{linkCopied ? "Link copied" : "Copy link"}</button>
+              {derived.sweeps.length > 0 && (
+                <button onClick={downloadCsv} title="Download the per-round numbers behind these charts as a CSV — one block of rows per customer world, for building a problem set or answer key."
+                  className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">Download CSV</button>
+              )}
               {stale && <span className="text-xs text-warn ml-1">Inputs changed — re-run to update.</span>}
             </div>
             {instructor && (
