@@ -318,3 +318,50 @@ Six pieces, one pass:
 Resolved open question from the prior handoff: instructor-view access is a plain
 toggle, not gated by link/param (Jeff: no gates on any mode). Validation: tsc
 clean, build green, route grew 14.3 kB → 17.3 kB.
+
+## 2026-06-18 — v1 close-out part 1: run-link, compression, A/B compare (resolved)
+
+Three features shipped on the frozen engine (cfg + result reads only; sim.ts
+untouched). Commits e67f31a, a601e75, 4dc62b9.
+
+**Shareable seeded run-link (e67f31a).** A displayed run encodes its business
+levers, chosen customer worlds, difficulty, λ, rounds, and optional finance
+into a URL token stamped with ENGINE_VERSION. Opening `?r=...` re-runs the
+frozen engine on those inputs, so a graded result reproduces against a known
+engine; verdict + warnings regenerate from the numbers and can't be dropped in
+transit. Engine-version mismatch surfaces a banner instead of silently
+returning different numbers. No raw seed travels — the band comes from the
+fixed internal REF_SEEDS, pinned by the engine version, consistent with the
+"difficulty not seed" rule. Codec in business.ts: encodeRunLink/decodeRunLink,
+defensive decode (malformed token ignored, per-field enum validation), versioned
+schema. Copy-link button + on-mount decode + mismatch notice in page.tsx.
+
+**Compression (a601e75).** Researched rather than guessed: lz-string's
+compressToEncodedURIComponent is the purpose-built standard for state-in-URL
+(synchronous, URI-safe, deterministic, ~3 KB, no transitive deps). Measured it
+beating hand-rolled base64url at every size — a typical run ~17% smaller, a
+long pasted model 3-4x smaller (3362-char JSON → 1251-char token vs 4483 raw).
+Swapped the codec; new tokens carry a leading codec marker "1"; the base64url
+decode path is kept only to read any pre-compression link. lz-string@1.5.0 is
+CJS — named ESM import fails under raw node but Next/webpack interops fine.
+
+**Two-business A/B compare with cross-world inversion finder (4dc62b9).**
+Optional second business (toggle + condensed B editor reusing FIELDS). When on,
+each chosen world is swept for BOTH businesses (reusing sweepWorld) and their
+typical-run bands compared. The inversion: a world whose per-world winner
+contradicts the overall winner is surfaced as a warning-class callout — the
+reference-class lesson that the better plan can depend on who the customers are.
+compareBusinesses is pure cfg+result reads. CompareBlock lives in
+#result-printable with no export toggle, so verdict + inversion always survive a
+saved copy. Run-link extended to carry the second business + compare flag.
+
+**devDep-prune lesson.** A bare `npm install lz-string` pruned devDependencies
+(typescript among them), breaking the build. Fix is the documented
+`npm install --include=dev`. typescript re-pinned at 5.8.2. The method that
+failed was the bare install; the documented include-dev install is the method.
+
+**Deferred (the other reading of "inversion finder").** The within-world
+single-lever fragility sweep — hold one world fixed, sweep A's small lever space,
+find the smallest single-lever change that flips the verdict. Built the
+cross-world inversion as the load-bearing pedagogical version; this adversarial
+lever-sweep variant is a clean next item, reuses the same sweep primitive.

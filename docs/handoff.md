@@ -9,101 +9,95 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 input + comprehension + finance layers LIVE. The demographic-fit redesign
-shipped this session (two-mode UI, per-world Monte-Carlo band headline,
-Calm/Normal/Harsh difficulty knob, 8th-grade term hovers, selective export);
-engine untouched. Next phase is v1 close-out: a shareable seeded run-link and a
-two-business A/B compare.
+v1 close-out, in progress. Shipped this session on the frozen engine: the
+shareable seeded run-link, lz-string token compression, and the two-business
+A/B compare with a cross-world inversion finder. Remaining v1: the cheap
+faculty pair (glossary page + per-round CSV export), then optionally the
+within-world single-lever fragility sweep. Engine (sim.ts) untouched all session.
 
 ## LAST COMMIT
-900b648 — demographic-fit redesign: two-mode UI, per-world Monte-Carlo band,
-difficulty knob, term hovers, selective export. Engine (sim.ts) not touched.
-tsc clean, build green (17.3 kB).
+4dc62b9 — v1 close-out: two-business A/B compare with cross-world inversion
+finder. (Preceded this session by a601e75 compression, e67f31a run-link.)
+typecheck clean, build green (21.3 kB).
 
 ## CURRENT STATE
-Define one business in plain terms, run it across named customer worlds. Engine
-2.0.0 (untouched) is an agent-based, seeded Monte Carlo: a HJF-1993 / TK-1992
-reference-dependent logit per customer per round, λ default 2.25. A top control
-picks Class (default, plain, no dials), Instructor (dials + behavioral detail),
-or Finance focus (Instructor with the dollar table led and behavioral methodology
-folded away); no gates on any mode. Each customer-world card now leads with a
-Monte-Carlo BAND headline (typical run + luck range from a per-world multi-seed
-sweep), a dot-strip of every roll, and a "watch it play out" button that re-rolls
-the live chart; the representative roll is the median seed so chart/story/numbers
-agree. Randomness is a Calm/Normal/Harsh difficulty knob (engine noise
-0.02/0.05/0.12); "seed" is gone from the surface. Surviving jargon carries
-8th-grade hover defs. Save/Print and Copy read #result-printable; an
-instructor-only selective-export panel hides optional sections, but verdict +
-warning chips have no toggle and survive every saved copy by construction.
+Define one business in plain terms, run it across named customer worlds; engine
+2.0.0 (untouched) is a seeded agent-based Monte Carlo, λ default 2.25. Three new
+v1 surfaces. (1) Run-link: a "Copy link" button encodes the displayed run
+(levers, chosen worlds, difficulty, λ, rounds, finance) into a URL stamped with
+ENGINE_VERSION; opening it re-runs the frozen engine, so a graded result
+reproduces and the verdict + warnings regenerate from the numbers rather than
+riding along as droppable text. A different engine version shows a mismatch
+banner instead of silently returning different numbers. (2) Tokens are
+compressed with lz-string (compressToEncodedURIComponent), marker "1"; a legacy
+base64url decode path remains. (3) A "Compare a second business" toggle adds an
+A-vs-B view: each chosen world is swept for both businesses, bands compared, and
+any world whose winner contradicts the overall winner is surfaced as a
+warning-class inversion callout ("overall A keeps more, but with the grudge crowd
+B wins"). CompareBlock + the inversion sit inside #result-printable with no
+export toggle, so they survive every saved copy. Save/Print, Copy writeup, and
+Copy link are no-print chrome.
 
 ## NEXT MOVE
-v1 close-out, on the current frozen engine (cfg + result reads only):
-(1) shareable seeded run-link — encode business inputs + difficulty + λ + rounds
-+ ENGINE_VERSION into the URL so any saved/graded result reproduces against a
-known engine (this is the grading/answer-key primitive); (2) two-business A/B
-side-by-side compare, with the worst-case inversion finder folded in (hold the
-world fixed, sweep the small lever space — same sweep primitive as sweepWorld /
-referenceBand). Then the cheap faculty-requested pair: a glossary page and a
-per-round CSV export. The optional single-model LLM voice stays after v1.
+Finish v1 with the cheap faculty pair on the frozen engine: (1) a glossary page
+(the Term defs already in page.tsx, surfaced as a standalone reference) and
+(2) per-round CSV export (the engine's per-round rows: round, active, churned,
+reputation, revenue — one CSV per swept world or per displayed run). Then,
+optionally, the deferred within-world fragility sweep: hold one world fixed,
+sweep A's small lever space, report the smallest single-lever change that flips
+the verdict (reuses sweepWorld). The optional single-model LLM voice stays after
+v1 closes.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
-- GitHub: YES, trzz333/customer-model (private), pushed this session.
+- GitHub: YES, trzz333/customer-model (private), pushed this session (4dc62b9).
 - Vercel: live at customer-model.council.fyi; this session's pushes auto-deploy.
-- Env vars: NO. v1 is key-free.
+- Env vars: NO. v1 is key-free. New runtime dep: lz-string@1.5.0 (in
+  dependencies). @anthropic-ai/sdk is present for the post-v1 voice layer, unused.
 
 ## DECISIONS LOCKED
 Standalone repo, not council. Deterministic, reproducible, auditable core, not an
 LLM-respondent tool. Templates are CUSTOMER WORLDS applied to a user business. λ
-default 2.25, held constant across worlds. Engine evolves by versioned release,
-never live auto-tuning; ENGINE_VERSION stamps every result. Optional LLM voice is
-single-model, after v1, never a committee. Business paste travels with the run, not
-LLM-parsed into levers in v1. ALWAYS PUSH. (a) NO machine
-learning — "Monte Carlo" here means run many rolls and show the distribution, never
-fit or train a model; ML would destroy the auditable-not-a-black-box differentiator.
-(b) Two-mode UI (SHIPPED): jargon-free Class view by default, Instructor view for the
-knobs / numbers / export. Finance focus is an EMPHASIS within Instructor (lead with
-dollars, fold behavioral econ), NOT a third access tier. No gates on any mode — any
-mode is open to anyone, for ease of reading, not access control. (c) Randomness is
-an instructor difficulty knob (Calm/Normal/Harsh → noise), never a student-facing
-"seed." (d) The headline is a band (median + range over many rolls), not a
-single-seed point. (e) λ and seed claims stay CONDITIONAL — never reassert
-"slide λ and the verdicts move" or "the seed only freezes noise" (both verified
-false).
+default 2.25, held constant across worlds. Engine evolves by versioned release;
+ENGINE_VERSION stamps every result. Optional LLM voice is single-model, after v1,
+never a committee. ALWAYS PUSH. NO machine learning ("Monte Carlo" = run many
+rolls, show the distribution). Two-mode UI (Class / Instructor; Finance is an
+emphasis within Instructor, not a tier; no gates). Randomness is a
+Calm/Normal/Harsh difficulty knob, never a student "seed." Headline is a band,
+not a point. λ and seed claims stay CONDITIONAL. New this session: (a) the
+run-link carries DIFFICULTY, not a raw seed — the band reproduces because
+REF_SEEDS is fixed in code and pinned by the engine version. (b) lz-string is the
+token codec; do not hand-roll compression. (c) the A/B inversion finder is the
+CROSS-WORLD one (reference-class: winner flips between crowds); the within-world
+single-lever fragility sweep is the deferred other reading, not a replacement.
 
 ## OPEN QUESTIONS
 1. LLM voice layer: still "after v1"; the only question is whether it ever ships,
    and as archetype narration vs business autofill. Not urgent.
-2. (RESOLVED) Instructor-view access is a plain toggle, no gate — Jeff: no gates on
-   any mode. Moved to history.
 
 ## NOTES
-1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy over
+1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
    #result-printable; verdict + warning chips must-show per card; details.numbers
-   force-opened into both saved paths. Selective export SHIPPED this session: an
-   instructor-only checkbox panel hides optional sections via .export-hidden
-   (@media print drops them; copyWriteup display:none's them before reading), but
-   verdict + warning chips carry NO class and NO toggle, so they survive every
-   saved copy BY CONSTRUCTION. Confirmed holding. Never build a separate clean
-   export that drops the verdict; never add a toggle that can drop verdict/warnings.
-2. ALWAYS PUSH (standing, Jeff): push every code-changing session; stale prod breaks
-   the embedded-reviewer loop. Hard stops only: no secrets, never drop the verdict.
-3. ENGINE IS MONTE CARLO (load-bearing for the band work): runSimulation seeds a
-   mulberry32 RNG used in FIVE places — population sampling in spawn(), the pDefect
-   Bernoulli, the noise flip, competitor-pull, and the friction-gate churn. The seed
-   fixes the whole roll, not just noise; the per-100 headline is one sample, and a
-   different seed moves it ~5-8 pts even at noise 0. That is why the band is the
-   right headline. Verified by an offline sweep (tmp compile of sim.ts + business.ts).
-4. λ IS CONDITIONAL (verified by sweep): swing runs 0 (no perceived loss) to ~40 pts
-   (big unbuffered loss with headroom: raiseB + premium + no retention), single
-   digits on buffered/absorbed losses, ~1 when floored. The old "15-24 pts monotonic"
-   claim was overstated; corrected in copy and here.
-5. EMBEDDED AUDIT HARNESS lesson: the next audit prompt must NOT seed the session
-   with this dev bootstrap — the first audit read its own seed back off the clipboard
-   and falsely reported "Copy emits the bootstrap." Require read-back-literally
-   (navigator.clipboard.readText) for any save/copy claim, and judge Print via the
-   printAll force-open in the click handler, not @media print CSS alone (that error
-   produced the second audit's false "Print drops finance/segment tables" finding;
-   its "rival early/late lever cosmetic" was also wrong — mild = 0.6*rounds/offer 30,
-   hard = 0.4*rounds/offer 60). Build quirk: cmd shell, npm install --include=dev,
-   npx tsc, commit -F (PowerShell mangles ; and quotes).
+   force-opened into both saved paths; selective export hides optional sections
+   but verdict + warnings carry NO class and NO toggle, surviving every saved copy
+   by construction. CONFIRMED HOLDING this session: CompareBlock and the inversion
+   callout were added inside #result-printable with no export-hidden class, so the
+   A/B verdict and the inversion survive Save/Print and Copy. Copy-link is no-print
+   chrome. Never build a clean export that drops the verdict; never add a toggle
+   that can drop verdict/warnings/inversion.
+2. ALWAYS PUSH (standing, Jeff): push every code-changing session. Three pushes
+   this session.
+3. BUILD QUIRK (load-bearing): a bare `npm install <pkg>` PRUNES devDependencies
+   (typescript included) and breaks the build. Always restore with
+   `npm install --include=dev`. Validate sequence: cmd shell, npm run typecheck
+   (NOT `npx tsc` — npx misresolves to a bogus tsc@2.0.4), npm run build,
+   git add <scoped paths>, commit -F, push. typescript pinned 5.8.2.
+4. RUN-LINK URL BOUNDARY: lz-string keeps typical links tiny, but a pasted
+   novel-length business model can still exceed practical URL limits. The schema
+   is version-marked, so a stronger codec (e.g. a gzip CompressionStream variant)
+   can be added later without breaking existing links. Not worth solving for v1.
+5. ENGINE IS MONTE CARLO / REF_SEEDS FIXED (load-bearing for run-link + compare):
+   runSimulation seeds a mulberry32 RNG; the per-100 headline is one sample and a
+   different seed moves it ~5-8 pts even at noise 0, which is why the headline is a
+   band over the fixed internal REF_SEEDS. Both the run-link and the A/B sweep rely
+   on REF_SEEDS being constant in code and pinned by ENGINE_VERSION.
