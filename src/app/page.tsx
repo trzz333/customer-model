@@ -214,7 +214,15 @@ export default function Page() {
   function run() { setRan({ biz, selected, adv, fin }); }
   function copyWriteup() {
     const el = document.getElementById("result-printable");
-    if (el) navigator.clipboard?.writeText(el.innerText).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); });
+    if (!el) return;
+    // Mirror printAll: innerText skips collapsed <details>, so force-open the
+    // numbers/finance blocks before reading, then restore their prior state.
+    const blocks = Array.from(el.querySelectorAll("details.numbers")) as HTMLDetailsElement[];
+    const prior = blocks.map((d) => d.open);
+    blocks.forEach((d) => (d.open = true));
+    const text = el.innerText;
+    blocks.forEach((d, i) => (d.open = prior[i]));
+    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); });
   }
   function printAll() { document.querySelectorAll("details.numbers").forEach((d) => ((d as HTMLDetailsElement).open = true)); window.print(); }
 
