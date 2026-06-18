@@ -31,15 +31,51 @@ ABM-calibration and MLOps-governance literature:
   (sim.ts) is now stamped on every result; bake it into the seeded run-link so a
   graded answer key stays reproducible against a known engine.
 
-## NOW (v1 close-out)
-- [ ] Bake `ENGINE_VERSION` + seed + inputs into the shareable run-link so any
-      saved/graded result reproduces against a known engine (pairs with A/B).
-- [ ] Two-business A/B side-by-side compare, worst-case inversion finder folded
-      in (hold the world fixed, sweep the small lever space — same primitive as
-      referenceBand). UI + extra cfg on the current engine. This is the next build.
-- [ ] Shareable seeded run-link: encode inputs + seed + engine version in the URL
-      for assignments and grading.
-- [ ] Glossary + per-round CSV export (cheap, faculty-requested).
+## NOW (v1 closing)
+Every v1 surface is shipped: seeded run-link (engine-version stamped), A/B
+compare + cross-world inversion finder, within-world fragility sweep, glossary,
+per-round CSV. The faculty-review triage is done (finance banding, grudger
+over-narration, glossary rule-of-thumb). The accessibility restructure is done
+(three depth tiers; see DONE). What gates "v1 closed" is now a single deferred
+DECISION, not a build: the optional single-model LLM voice (see LLM VOICE below),
+which stays deferred.
+
+NEXT-STEP FORK (after v1 is called closed) — pick one, do not start yet:
+- v2: open the V2 parking lot (retention vocabulary is the richest item), OR
+- email Professor Bonner a link to the live site with a brief description of what
+  it does and the v2 plans. NOT to be drafted until Jeff says go; recorded here
+  so it isn't lost.
+
+## LLM VOICE — recommendation (2026-06-18)
+The locked rule: IF an LLM ever enters the tool it is a single model, after v1,
+grounded in the engine's numbers. Two distinct jobs it could do, at opposite
+ends of the pipeline (this is the "narration vs autofill" fork):
+- NARRATION (output side): after the deterministic engine produces the numbers,
+  one grounded call writes a plain-language read of THIS run from the actual
+  per-segment series, and can tailor it to the reader's frame (entrepreneurship
+  → runway/unit economics, marketing → segmentation, strategy → competitive
+  response, behavioral → the loss-aversion mechanism, freshman → plainer still).
+  It explains; it does not compute.
+- AUTOFILL (input side): a sentence ("a $12/mo note app raising price into a
+  cheaper rival") parsed into the four levers + name/sell, lowering the input
+  barrier.
+
+Recommendation for broad B-school utility: NARRATION is the higher-value form,
+because it is the lever that makes ONE deterministic result legible across roles
+and student levels — the accessibility goal extended past the (one-size)
+hand-written prose. BUT it is not needed to close v1: the depth tiers + inline
+teaching already deliver core accessibility deterministically and key-free. So
+keep it deferred to v2, and when it ships: narration first; CACHED/pinned to the
+run-link token so a graded artifact is stable (LLM prose is non-deterministic and
+collides head-on with the reproducible-answer-key core — it must be the one
+clearly-labeled non-reproducible layer on top, never load-bearing); single model;
+low temperature; grounded in the per-segment series; validated against overclaim.
+Autofill is a separate, lower-priority convenience and only acceptable if the
+parsed levers are SHOWN and EDITABLE (the user's confirmed levers become the
+canonical run-link input, so determinism and the map-it-yourself learning task
+both survive). First key in the loop either way: cost, latency, classroom-scale
+rate limits, a mid-class failure mode, and a paste→prompt injection surface — all
+reasons it is a v2 enhancement, not a v1 requirement.
 
 ## DONE (recent, newest first)
 - ENGINE UNFROZEN and reworked to make λ load-bearing. Replaced the hard

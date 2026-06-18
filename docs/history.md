@@ -411,3 +411,46 @@ build: whether the single-model LLM voice ever ships, and as archetype narration
 vs business autofill. Also produced (outside the repo) a faculty-review prompt:
 a paste-into-fresh-Claude persona prompt that has a skeptical seasoned B-school
 faculty member exercise the live tool and return a blunt go/no-go.
+
+## 2026-06-18 — faculty-review triage + accessibility restructure + browser verify
+
+Resolved this session, evicted from handoff.md:
+
+FACULTY-REVIEW TRIAGE (commit df99260). A skeptical seasoned-B-school review
+of the live tool was triaged against source. Three real hits fixed, all the
+same fault (the tool asserting more certainty than it earns):
+- Finance was a POINT read on the median seed while everything else was banded.
+  Added financeBand() in business.ts reading finance across the same REF_SEEDS
+  the sweep computes; table cells now render "~" median + luck range. Killed the
+  lone-decimal LTV:CAC false-precision the review flagged three times.
+- laymanAnalysis dropped the "That's the lever to pull first" advice on the
+  worst-hit archetype (structurally the grudger via Grim Trigger); now states the
+  structural fact and gives no false lever.
+- Glossary LTV:CAC def hedged "3 or more is healthy" → "common rule-of-thumb"
+  (single TERM_DEFS source).
+Validated as design (no change): CSV scope, fragility gaming-is-the-lesson,
+the save invariant, the Methodology candor. The four-button collapse is
+assignment design, already scaffolded by the existing teachingPrompt.
+
+ACCESSIBILITY RESTRUCTURE (commit e5e4b8d). Jeff: need a mode for a
+non-specialist (entrepreneurship) professor; "Instructor" wrongly read as THE
+professor mode; can't assign glossary reading. Researched prior art (NN/g
+progressive disclosure core/advanced/expert; Capsim tier-by-complexity +
+"choose the emphasis" + "make the instructor's job easier"; Carroll-Rosson
+training wheels; just-in-time over assigned reading). Decision: tier by DEPTH
+not role. Student (was Class) / Teaching (new default; plain + full controls +
+finance, no lambda/citations) / Deep dive (was Instructor; + lambda + cited
+methodology). Finance became a toggle; context-aware default (fresh→Teaching,
+link→Student); run-link schema unchanged. Save invariant preserved.
+
+LLM-VOICE WEIGHING. Recorded in plan.md. Clarified narration (output-side,
+role-tailored read of the run) vs autofill (input-side lever parse).
+Recommendation: narration is the higher-utility form across B-school roles but
+is NOT needed for v1; keep deferred to v2, narration-first, CACHED to the
+run-link (LLM prose is non-deterministic and must not contaminate the
+reproducible core), single model, grounded, low temp.
+
+BROWSER VERIFICATION. Claude-in-Chrome confirmed prod (e5e4b8d) renders all
+three tiers correctly. Caught one miss: verdict() in the frozen sim.ts still
+emits "...— tells you which lever to pull first" in the Engine verdict line
+(prose-only, frozen-file). Carried as the open NEXT MOVE.
