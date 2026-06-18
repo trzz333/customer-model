@@ -147,3 +147,59 @@ which is what customer-model.council.fyi still serves. The block started after
 this code. Inspector for the blocked deploy:
 https://vercel.com/masterson3433-9774s-projects/customer-model/GwAvttbfF86nABRLzY5nawPaoiFM
 Local build is green, so the moment the block clears the input layer goes live.
+
+## 2026-06-18 — Audit-lens triage, outside-view band, paste field, two deploys
+
+Jeff handed over the "kitchen sink" adversarial-audit doc (a 14-lens review of a
+GenAI Media proposal plus a Gemini meta-audit) and asked which lenses belong in
+the Customer Model, what other standard customer-analysis methods fit in under a
+week, UI cognitive-ease moves for incoming freshmen, and graceful handling of a
+long pasted business model.
+
+Decision rule adopted (generalizing Jeff's "six sigma was overkill"): a lens
+earns a place only if it is expressible as a cfg manipulation or a result read on
+the frozen engine. The doc's real lesson — confirmed by the Gemini meta-audit —
+is that stacking redundant lenses manufactured rigor and diluted the two findings
+that mattered (base-rate category error; scaling paradox); the filter does the
+selection. Result: reference-class/outside-view (lens 6), noise audit (lens 2),
+and inversion/worst-case (lens 8) all collapse into one cheap sweep over the
+deterministic engine; CLV + a Fermi sanity line (lens 13) is a read on
+totalRevenue. Six Sigma DMAIC and the writing-exercise lenses (sycophancy,
+cognitive-bias inventory, premortem, red-team, steel-man, second-order,
+Chesterton, JTBD) were rejected with reasons — already embodied in the engine, or
+not native to a customer sim.
+
+Built and shipped (engine untouched):
+- Outside-view band: referenceBand() runs the business across all 5 worlds × 7
+  seeds; each card anchors "Is ~85 good?" against the full 56–106 range, and the
+  short-version banner carries it. Reference-class forecasting and a Kahneman
+  noise band in one sweep; closes the comprehension gap of an unanchored count.
+- unitEconomics(): an honest, unit-free CLV line (rounds of full price per
+  starting customer), naming the promo leak when material. No invented dollars —
+  the input never captured a price.
+- Business-model paste: optional `model` on BizInput; a long paste travels into
+  the saved/printed copy and is NOT LLM-parsed. Resolved the prior open autofill
+  question in the determinist direction — the student still sets the four levers
+  (the pedagogy), v1 stays key-free. First shipped as a collapsed textarea (hid
+  the content); fixed to a snapshot card (first sentence, click to expand) after
+  Jeff flagged that a user must see what they pasted.
+- Fixed the logged net-growth wart: the "first to leave / lever to pull" line is
+  suppressed when the scenario nets positive.
+
+Deploys: f2fcc6a (band + paste + CLV + wart) → READY (dpl_4Rq1Gsv); cd40100
+(snapshot card) → READY (dpl_AHjsRmA). Both authored as masterson3433@gmail.com;
+the jeff@local block did not recur. Validation green each time (tsc clean, build
+12.2 kB). Note: commit messages with `;`/quotes mangled through PowerShell; used
+`git commit -F` with a temp message file.
+
+Faculty review received: Jeff ran the prior version through an embedded-browser
+Claude acting as a business-school faculty member. Its priorities (A/B compare,
+shareable seeded run-links, a finance/LTV layer, a fuller methodology appendix,
+plus the "keep ~107 of 100" relabel, humility on verdict wording, glossary, CSV)
+are folded into handoff NEXT MOVE / OPEN QUESTIONS / NOTES. Its economic-layer ask
+was partly met by the CLV line; the deeper margin/NPV layer is now an explicit
+open question because it trades against freshman cognitive ease.
+
+Evicted from handoff this date: the Vercel jeff@local block saga (resolved —
+author email fixed globally), the prior A/B-vs-autofill open question (autofill
+deferred; paste is context, not parse), and the standalone HTML prototype note.
