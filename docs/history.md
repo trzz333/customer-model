@@ -97,3 +97,53 @@ problem. The inputs map straight to engine knobs (archetype shares, λ, policy
 levers), so no business-language surface exists. Next session builds that front
 door (plain terms in, engine cfg out) and demotes the raw params to an advanced
 view. Engine stays frozen; this is UI-only.
+
+## 2026-06-17 — Plain-language input layer built; Vercel deploy BLOCKED
+
+Built the business-language front door on top of the frozen engine, then
+reframed it mid-session on Jeff's read of what the "template" is for.
+
+Reframe (the important part): templates are CUSTOMER WORLDS, not business
+types. A professor's reusable object is the customer-population lens applied to
+ANY business idea, not a pre-baked business. So the UI split into two axes:
+define one business once (name, what-you-sell, plus four plain levers: price
+move, value posture, retention play, competitive threat), then run it across
+named customer worlds (mainstream / fickle bargain-hunters / loyal regulars /
+skeptical first-timers / grudge-prone crowd). Each world is an archetype mix +
+present-bias; λ is held constant across worlds as the shared science. This also
+satisfied "let a school plug in its own businesses": the business panel IS the
+custom-input path; the three example chips just pre-fill it.
+
+Comprehension layer (Kahneman framing, applied literally): each result leads
+with a plain headline in concrete counts ("keep ~60 of every 100 regulars"),
+then one causal sentence naming the mechanism in human terms (a price rise
+stings ~λx as much as the same-size cut pleases), then who leaves first. The
+engine verdict + warning chips sit below as the auditable record; the numeric
+dashboard is collapsed. A "short version" banner reads the spread across worlds
+("thrives with regulars, bleeds with bargain-hunters; the gap is your customers,
+not your plan") — the cross-world contrast is the actual lesson.
+
+Pre-ship audit (six lenses: entrepreneurship, strategy, marketing/behavioral,
+pedagogy, skeptic, adversarial) drove four real fixes: (1) pedagogy caught a
+regression — re-added the per-run teaching prompt as a dynamic "use this in
+class" block that drives a one-lever A/B by hand; (2) skeptic — added a visible
+"structural model, not a forecast" line inside the printable region; (3)
+adversarial — event timing now derives from the final round count so changing
+rounds in Advanced scales hikes/competitor entry; (4) strategy — flagged the
+missing two-business A/B side-by-side as the next feature (deferred, not built).
+
+Code: new `src/lib/business.ts` (FIELDS, EXAMPLES, WORLDS, businessToCfg,
+laymanAnalysis, teachingPrompt — pure, engine untouched) and a full
+`src/app/page.tsx` rewrite to the two-axis multi-run UI. Save invariant held:
+results wrapped in `#result-printable`, verdict + chips always visible per card,
+Save/Print + Copy carry `.no-print`, globals.css print block unchanged. Local
+`tsc --noEmit` clean, `next build` green, static prerender 11.1 kB. Committed
+scoped (page.tsx + business.ts) and pushed: 57985c9..4e5991b.
+
+DEPLOY BLOCKED: Vercel has 4e5991b AND the prior 57985c9 in state BLOCKED;
+project reads live:false; last READY production deploy is the older 47789230,
+which is what customer-model.council.fyi still serves. The block started after
+47789230 (it predates this session), so it is an account/project condition, not
+this code. Inspector for the blocked deploy:
+https://vercel.com/masterson3433-9774s-projects/customer-model/GwAvttbfF86nABRLzY5nawPaoiFM
+Local build is green, so the moment the block clears the input layer goes live.
