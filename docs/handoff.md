@@ -9,40 +9,42 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 input + comprehension + finance layers LIVE. Two embedded faculty audits run
-this session and reconciled against the source and an offline engine sweep; an
-honesty pass shipped (λ and seed claims are now conditional). Next phase is a
-demographic-fit UI redesign (two modes + a Monte-Carlo distribution headline),
-decided and researched this session, not yet built.
+v1 input + comprehension + finance layers LIVE. The demographic-fit redesign
+shipped this session (two-mode UI, per-world Monte-Carlo band headline,
+Calm/Normal/Harsh difficulty knob, 8th-grade term hovers, selective export);
+engine untouched. Next phase is v1 close-out: a shareable seeded run-link and a
+two-business A/B compare.
 
 ## LAST COMMIT
-643577e — condition the λ and seed claims to match measured behavior (Methodology
-+ Advanced panel). Earlier this session: c9d1157 (copyWriteup force-opens
-details.numbers so the finance and segment blocks survive Copy).
+900b648 — demographic-fit redesign: two-mode UI, per-world Monte-Carlo band,
+difficulty knob, term hovers, selective export. Engine (sim.ts) not touched.
+tsc clean, build green (17.3 kB).
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds. Engine
-2.0.0 is an agent-based, seeded Monte Carlo: a HJF-1993 / TK-1992 reference-
-dependent logit per customer per round, λ default 2.25. Results lead with a plain-
-language headline, a short-version synth banner, per-world verdict + warning chips,
-an optional finance block ($ revenue / contribution / NPV / LTV:CAC / payback), and
-a collapsed numbers dashboard. Save/Print and Copy writeup both force-open every
-details.numbers inside #result-printable, so both saved paths carry the full record
-including finance. tsc clean, build green (14.3 kB).
+2.0.0 (untouched) is an agent-based, seeded Monte Carlo: a HJF-1993 / TK-1992
+reference-dependent logit per customer per round, λ default 2.25. A top control
+picks Class (default, plain, no dials), Instructor (dials + behavioral detail),
+or Finance focus (Instructor with the dollar table led and behavioral methodology
+folded away); no gates on any mode. Each customer-world card now leads with a
+Monte-Carlo BAND headline (typical run + luck range from a per-world multi-seed
+sweep), a dot-strip of every roll, and a "watch it play out" button that re-rolls
+the live chart; the representative roll is the median seed so chart/story/numbers
+agree. Randomness is a Calm/Normal/Harsh difficulty knob (engine noise
+0.02/0.05/0.12); "seed" is gone from the surface. Surviving jargon carries
+8th-grade hover defs. Save/Print and Copy read #result-printable; an
+instructor-only selective-export panel hides optional sections, but verdict +
+warning chips have no toggle and survive every saved copy by construction.
 
 ## NEXT MOVE
-Demographic-fit redesign for an average business-school freshman, built in one
-coherent pass (do NOT half-ship): (1) a two-mode UI — a default jargon-free "Class
-view" and an "Instructor view" that holds the knobs; (2) replace the single-seed
-point headline with a Monte-Carlo BAND — run many rolls per world, report median +
-range in plain words ("usually keeps ~84 of 100, somewhere between 78 and 90");
-(3) optional HOPs-style "watch it play out" re-roll animation so the spread is felt,
-not decoded; (4) info hovers at ~8th-grade reading level on every surviving term;
-(5) move randomness to an instructor difficulty control (the Capsim pattern) and
-kill the word "seed" from the student surface; (6) selective export (instructor
-picks which sections travel into the saved copy), save-invariant preserved. The
-band work lives in business.ts (a per-world multi-seed sweep, reuse referenceBand's
-machinery) plus page.tsx. The frozen engine (sim.ts) is NOT touched.
+v1 close-out, on the current frozen engine (cfg + result reads only):
+(1) shareable seeded run-link — encode business inputs + difficulty + λ + rounds
++ ENGINE_VERSION into the URL so any saved/graded result reproduces against a
+known engine (this is the grading/answer-key primitive); (2) two-business A/B
+side-by-side compare, with the worst-case inversion finder folded in (hold the
+world fixed, sweep the small lever space — same sweep primitive as sweepWorld /
+referenceBand). Then the cheap faculty-requested pair: a glossary page and a
+per-round CSV export. The optional single-model LLM voice stays after v1.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
@@ -56,28 +58,34 @@ LLM-respondent tool. Templates are CUSTOMER WORLDS applied to a user business. �
 default 2.25, held constant across worlds. Engine evolves by versioned release,
 never live auto-tuning; ENGINE_VERSION stamps every result. Optional LLM voice is
 single-model, after v1, never a committee. Business paste travels with the run, not
-LLM-parsed into levers in v1. ALWAYS PUSH. NEW THIS SESSION: (a) NO machine
+LLM-parsed into levers in v1. ALWAYS PUSH. (a) NO machine
 learning — "Monte Carlo" here means run many rolls and show the distribution, never
 fit or train a model; ML would destroy the auditable-not-a-black-box differentiator.
-(b) Two-mode UI: jargon-free Class view by default, Instructor view for the
-knobs / numbers / export. (c) Randomness is an instructor difficulty knob, never a
-student-facing "seed." (d) The headline is a band (median + range over many rolls),
-not a single-seed point. (e) λ and seed claims stay CONDITIONAL — never reassert
+(b) Two-mode UI (SHIPPED): jargon-free Class view by default, Instructor view for the
+knobs / numbers / export. Finance focus is an EMPHASIS within Instructor (lead with
+dollars, fold behavioral econ), NOT a third access tier. No gates on any mode — any
+mode is open to anyone, for ease of reading, not access control. (c) Randomness is
+an instructor difficulty knob (Calm/Normal/Harsh → noise), never a student-facing
+"seed." (d) The headline is a band (median + range over many rolls), not a
+single-seed point. (e) λ and seed claims stay CONDITIONAL — never reassert
 "slide λ and the verdicts move" or "the seed only freezes noise" (both verified
-false this session).
+false).
 
 ## OPEN QUESTIONS
 1. LLM voice layer: still "after v1"; the only question is whether it ever ships,
    and as archetype narration vs business autofill. Not urgent.
-2. Instructor view access: plain toggle vs gated by link/param? Product call for
-   Jeff when the redesign starts; default to a plain toggle unless he says otherwise.
+2. (RESOLVED) Instructor-view access is a plain toggle, no gate — Jeff: no gates on
+   any mode. Moved to history.
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy over
    #result-printable; verdict + warning chips must-show per card; details.numbers
-   force-opened into both saved paths. Confirmed holding this session. Never build a
-   separate clean export that drops the verdict. The planned selective export must
-   keep verdict + warnings non-optional.
+   force-opened into both saved paths. Selective export SHIPPED this session: an
+   instructor-only checkbox panel hides optional sections via .export-hidden
+   (@media print drops them; copyWriteup display:none's them before reading), but
+   verdict + warning chips carry NO class and NO toggle, so they survive every
+   saved copy BY CONSTRUCTION. Confirmed holding. Never build a separate clean
+   export that drops the verdict; never add a toggle that can drop verdict/warnings.
 2. ALWAYS PUSH (standing, Jeff): push every code-changing session; stale prod breaks
    the embedded-reviewer loop. Hard stops only: no secrets, never drop the verdict.
 3. ENGINE IS MONTE CARLO (load-bearing for the band work): runSimulation seeds a

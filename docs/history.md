@@ -278,3 +278,43 @@ Resolved this session, evicted from handoff.md:
   randomness as an instructor difficulty knob (no student-facing "seed"), selective
   export. No machine learning — the Monte Carlo idea is distributions, not a fitted
   model. Build deferred to a fresh session via this handoff.
+
+## 2026-06-18 — Demographic-fit redesign shipped (resolved)
+
+The redesign that the prior handoff carried as NEXT MOVE ("decided and
+researched, not yet built") is now built and pushed (900b648), engine untouched.
+Six pieces, one pass:
+
+1. Two-mode UI plus an emphasis variant. A top segmented control: Class
+   (default, plain, no dials), Instructor (the dials + behavioral detail), and
+   Finance focus (Instructor with emphasis=finance — leads with the dollar table
+   open, folds the behavioral-economics methodology into a collapsed details).
+   No password gates anywhere; any mode is open to anyone, by Jeff's call. The
+   finance-focus emphasis answers his "not every finance professor wants
+   bombarded with behavioral econ" note without adding a third access tier.
+2. Per-world Monte-Carlo band headline. New `sweepWorld` + `bandPhrase` in
+   business.ts run the fixed REF_SEEDS set against one world and return the
+   median run as the representative roll, so the card's chart, causal story, and
+   numbers all match the band headline ("usually about N, between lo and hi").
+   The all-world `referenceBand` is unchanged and still drives the "is ~N good?"
+   line. Engine (sim.ts) not touched.
+3. "Watch it play out": a per-card BandStrip (a dot per seed on a track) plus a
+   play button that re-rolls the actual active-customers chart through the seeds
+   in seed order, so the spread is felt. no-print; resets when inputs change.
+4. 8th-grade info hovers: a `Term` component (dotted underline, title= for hover,
+   click toggle for touch, popover is no-print) on every surviving jargon term
+   (churn, retention, reputation, tipping, contribution, NPV, LTV:CAC, payback,
+   loss aversion, present bias, customer worlds, λ).
+5. Randomness is now a Calm/Normal/Harsh difficulty control (maps to engine
+   noise 0.02/0.05/0.12); the word "seed" is gone from the surface entirely. The
+   old seed + noise sliders were removed; rounds + λ sliders stay in Advanced.
+6. Selective export: an instructor-only "Saved copy includes" checkbox panel
+   (model, class prompt, charts, numbers, finance, methodology). Deselected
+   sections get `.export-hidden`, which `@media print` drops and copyWriteup
+   display:none's before reading innerText. The verdict + warning chips carry NO
+   class and NO toggle, so they survive every saved copy by construction — the
+   save-button invariant, now enforced through the selective path too.
+
+Resolved open question from the prior handoff: instructor-view access is a plain
+toggle, not gated by link/param (Jeff: no gates on any mode). Validation: tsc
+clean, build green, route grew 14.3 kB → 17.3 kB.
