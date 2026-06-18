@@ -1,0 +1,19 @@
+# deps / build
+node_modules/
+.next/
+out/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.*
+!.env.local.example
+
+# vercel / editor / os
+.vercel/
+.DS_Store
+*.log
+.idea/
+.vscode/
