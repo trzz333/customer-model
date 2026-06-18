@@ -14,7 +14,9 @@ to make loss aversion λ genuinely load-bearing, shipped the optional finance
 layer, and completed an honesty pass triggered by a faculty/embedded audit.
 
 ## LAST COMMIT
-LASTCOMMITLINE
+aef3b0c — unfreeze engine to make λ load-bearing (HJF/TK reference-dependent
+logit), followed by the engine-version stamp + evolution-policy commit. Prior:
+945a1ba (honesty pass + finance layer).
 
 ## CURRENT STATE
 Define one business in plain terms (name, what-you-sell, optional full model
@@ -58,8 +60,10 @@ levers in v1 (the student sets the levers; that's the exercise); v1 stays
 key-free. NEW: the engine is disciplined but not permanently sealed — it was
 unfrozen this session to make λ load-bearing (HJF 1993 / TK 1992 reference-
 dependent logit), verified by a sweep, and is treated as re-frozen on this new
-core; engine edits happen only when the math demands and are sweep-verified.
-NEW: ALWAYS PUSH (see NOTES) — no deploy-permission gate on this project.
+core. ENGINE EVOLUTION POLICY (researched, plan.md): evolve by versioned release,
+never by live runtime auto-tuning; recalibrate only offline against a held-out
+check; `ENGINE_VERSION` (sim.ts, now 2.0.0) is stamped on every result and will
+be baked into the seeded run-link. NEW: ALWAYS PUSH (see NOTES).
 
 ## OPEN QUESTIONS
 1. Voice/LLM layer: "after v1" agreed; the only question is whether it ever

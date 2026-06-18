@@ -15,12 +15,30 @@ verified by a sweep, not by eye. Honesty about what the model does and does not
 capture is itself the pedagogy: it is the check on AI hand-waving, so it cannot
 hand-wave about itself.
 
+## ENGINE EVOLUTION POLICY (researched 2026-06-18)
+The engine bends at versioned releases, not at runtime. Three rules from the
+ABM-calibration and MLOps-governance literature:
+- NO live auto-tuning. The whole value is deterministic, reproducible, auditable
+  answer keys; a self-adjusting engine destroys that (Markstrat/Capsim are pinned
+  per cohort for the same reason). Reproducibility needs the exact version that
+  produced a result to be recoverable.
+- Recalibrate parameters only offline, against a held-out check, version-bumped —
+  never by eyeballing one scenario. Guard overfitting: small complexity increases
+  demand large calibration-data increases; over-parameterized models generalize
+  worse (von Neumann's elephant). Add a mechanism only when it earns its keep.
+- Treat engine changes as champion-challenger: a new version is a challenger,
+  promoted deliberately, old version archived, rollback via git. `ENGINE_VERSION`
+  (sim.ts) is now stamped on every result; bake it into the seeded run-link so a
+  graded answer key stays reproducible against a known engine.
+
 ## NOW (v1 close-out)
+- [ ] Bake `ENGINE_VERSION` + seed + inputs into the shareable run-link so any
+      saved/graded result reproduces against a known engine (pairs with A/B).
 - [ ] Two-business A/B side-by-side compare, worst-case inversion finder folded
       in (hold the world fixed, sweep the small lever space — same primitive as
       referenceBand). UI + extra cfg on the current engine. This is the next build.
-- [ ] Shareable seeded run-link: encode inputs + seed in the URL for assignments
-      and grading. Pairs with A/B.
+- [ ] Shareable seeded run-link: encode inputs + seed + engine version in the URL
+      for assignments and grading.
 - [ ] Glossary + per-round CSV export (cheap, faculty-requested).
 
 ## DONE (recent, newest first)

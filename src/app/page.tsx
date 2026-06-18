@@ -5,6 +5,7 @@ import {
   runSimulation,
   verdict,
   ARCHETYPES,
+  ENGINE_VERSION,
   type SimConfig,
   type SimResult,
 } from "@/lib/sim";
@@ -311,7 +312,7 @@ export default function Page() {
           <div id="result-printable">
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
               <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
-              <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · seed {ran.adv.seed}</span>
+              <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · seed {ran.adv.seed} · engine {ENGINE_VERSION}</span>
             </div>
             <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
 

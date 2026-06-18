@@ -24,6 +24,15 @@ function makeRng(seed: number): () => number {
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
+// ── Engine version ───────────────────────────────────────────────────
+// Bump on any change to the perception core or calibration constants. Stamped
+// onto every result so a run is always tied to a known engine (and, once the
+// seeded run-link ships, baked into the link so a graded answer key stays
+// reproducible). 2.0.0 = the reference-dependent logit core (HJF 1993 / TK 1992)
+// that replaced the 1.x fairness deadband. Evolve by versioned release, never by
+// silent runtime auto-tuning.
+export const ENGINE_VERSION = "2.0.0";
+
 // ── Reference-dependent perception constants ─────────────────────────
 // The customer judges each round against an adapting reference point. The
 // functional form follows the reference-dependent logit brand-choice model
