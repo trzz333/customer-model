@@ -245,3 +245,36 @@ Resolved/evicted from handoff this date:
   actually did this session; "there is no finance block" was stale (pre-deploy).
 
 - docs/plan.md created as the running roadmap + v2 parking lot + decision log.
+
+
+## 2026-06-18 — Two embedded audits, honesty pass, demographic-redesign decided
+
+Resolved this session, evicted from handoff.md:
+
+- Generated a fresh embedded-audit prompt with an anti-contamination rule after the
+  prior audit's "Copy writeup emits the CLAUDE BOOTSTRAP" finding turned out to be a
+  false positive: the app's copy reads #result-printable.innerText; the bootstrap
+  text exists only in docs/ and the ai-handoff skill (the seed used to brief the
+  audit session), so the auditor read its own seed back. No bug there.
+- Fixed the real adjacent defect: copyWriteup read innerText without opening the
+  collapsed details.numbers, so Copy dropped the finance + segment tables. Now mirrors
+  printAll's force-open and restores prior open state. Commit c9d1157.
+- Second audit confirmed the Copy fix (read back 11,048 chars, finance table present).
+  Its two high-severity findings (seed swing ≈ λ swing, presented as a point estimate;
+  λ "load-bearing" stated unconditionally but conditional in fact) verified TRUE by
+  offline engine sweep. Its "Print drops finance/segment tables" and "rival early/late
+  lever cosmetic" findings verified FALSE against the source.
+- Offline sweep findings (tmp compile of sim.ts + business.ts, since deleted): λ swing
+  0 to ~40 pts depending on whether an unbuffered loss exists and the model isn't
+  floored; seed moves results ~5-8 pts even at noise 0 because the engine is an
+  agent-based Monte Carlo (RNG drives population sampling + every churn draw, not just
+  the noise flip).
+- Honesty pass shipped (commit 643577e): conditioned the three unconditional claims
+  (Methodology λ sentence, Methodology seed sentence, Advanced-panel λ line) to match
+  measured behavior.
+- Decided the next phase (researched: uncertainty-viz / HOPs, progressive disclosure,
+  Capsim pedagogy): two-mode UI (jargon-free Class view default, Instructor view for
+  knobs), Monte-Carlo band headline replacing the single-seed point, info hovers,
+  randomness as an instructor difficulty knob (no student-facing "seed"), selective
+  export. No machine learning — the Monte Carlo idea is distributions, not a fitted
+  model. Build deferred to a fresh session via this handoff.
