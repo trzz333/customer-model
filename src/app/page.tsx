@@ -22,6 +22,7 @@ import {
   financeRead,
   sweepWorld,
   bandPhrase,
+  compareBusinesses,
   DIFFICULTY_NOISE,
   DIFFICULTY_LABEL,
   DIFFICULTY_NOTE,
@@ -33,6 +34,7 @@ import {
   type Layman,
   type FinanceInput,
   type WorldSweep,
+  type CompareResult,
 } from "@/lib/business";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -320,8 +322,70 @@ function WorldCard({ sweep, band, exportCharts, exportNumbers }: CardProps) {
   );
 }
 
+// ── A vs B compare block (always saved; the inversion is a warning-class
+//    insight, so it carries no export toggle) ──────────────────────────
+function CmpBar({ mid, lo, hi, max, color, win }: { mid: number; lo: number; hi: number; max: number; color: string; win: boolean }) {
+  const pct = Math.max(2, Math.min(100, (mid / max) * 100));
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-3 rounded-full bg-card-muted overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: win ? 1 : 0.5 }} />
+      </div>
+      <div className={`w-28 text-right text-xs tabular-nums ${win ? "text-foreground font-semibold" : "text-muted-fg"}`}>
+        ~{mid} <span className="text-muted-fg font-normal">({lo}–{hi})</span>
+      </div>
+    </div>
+  );
+}
+
+function CompareBlock({ cmp, nameA, nameB }: { cmp: CompareResult; nameA: string; nameB: string }) {
+  const an = nameA || "Business A", bn = nameB || "Business B";
+  const winLabel = (s: "a" | "b" | "tie") => (s === "a" ? an : s === "b" ? bn : "Even");
+  return (
+    <div className="mb-4">
+      <div className="rounded-xl border border-primary bg-primary/10 p-5 mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">A vs B — the short version</h3>
+        <p className="text-[15px] leading-relaxed">{cmp.summary}</p>
+        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-xs text-muted-fg">
+          <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1.5" style={{ backgroundColor: "var(--color-primary)" }} />A: <b className="text-foreground">{an}</b></span>
+          <span><span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-1.5" style={{ backgroundColor: "var(--color-researcher)" }} />B: <b className="text-foreground">{bn}</b></span>
+        </div>
+      </div>
+      {cmp.inversion && (
+        <div className="rounded-lg border border-warn/50 bg-warn/10 px-4 py-2.5 mb-3 text-xs leading-relaxed text-warn">
+          <b>Ranking flips.</b> Overall {winLabel(cmp.overall)} keeps more, but with {cmp.inversion.world.name.toLowerCase()} the winner is {winLabel(cmp.inversion.winner)} by about {Math.round(cmp.inversion.gap)} per 100. A single average would have hidden that.
+        </div>
+      )}
+      <div className="rounded-xl border border-card-border bg-card p-5">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-3">Kept per 100, world by world</div>
+        <div className="space-y-3">
+          {cmp.perWorld.map((wc) => {
+            const max = Math.max(wc.a.hi, wc.b.hi, 100);
+            return (
+              <div key={wc.world.key}>
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <span className="text-sm font-medium">{wc.world.name}</span>
+                  <span className={`text-xs ${wc.winner === "tie" ? "text-muted-fg" : "text-foreground"}`}>
+                    {wc.winner === "tie" ? "about even" : <>{winLabel(wc.winner)} wins by <b>{Math.round(wc.gap)}</b></>}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <CmpBar mid={wc.a.mid} lo={wc.a.lo} hi={wc.a.hi} max={max} color="var(--color-primary)" win={wc.winner === "a"} />
+                  <CmpBar mid={wc.b.mid} lo={wc.b.lo} hi={wc.b.hi} max={max} color="var(--color-researcher)" win={wc.winner === "b"} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-fg mt-3 leading-relaxed">Bars are the typical run (median over many rolls); the range in parentheses is the luck spread. A gap under {3} per 100 is treated as a wash, not a win.</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────
 const DEFAULT_BIZ: BizInput = { ...EXAMPLES[0] };
+const DEFAULT_BIZ_B: BizInput = { ...EXAMPLES[1] };
 const DEFAULT_SELECTED: Record<string, boolean> = { mainstream: true, fickle: true, loyal: true, skeptic: false, grudge: false };
 const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Difficulty };
 const DEFAULT_FIN: FinanceInput = { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
@@ -330,14 +394,16 @@ const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: tru
 type View = "class" | "instructor";
 type Emphasis = "behavioral" | "finance";
 type ExportSel = typeof DEFAULT_EXPORT;
-interface RanState { biz: BizInput; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
+interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
 
 export default function Page() {
   const [biz, setBiz] = useState<BizInput>(DEFAULT_BIZ);
+  const [bizB, setBizB] = useState<BizInput>(DEFAULT_BIZ_B);
+  const [compare, setCompare] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>(DEFAULT_SELECTED);
   const [adv, setAdv] = useState(DEFAULT_ADV);
   const [fin, setFin] = useState<FinanceInput>(DEFAULT_FIN);
-  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
+  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, bizB: DEFAULT_BIZ_B, compare: false, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [loadedEngine, setLoadedEngine] = useState<string | null>(null);
@@ -367,13 +433,15 @@ export default function Page() {
       synth += ` Across all five customer worlds (not only the ones you picked) this business usually ends with between about ${band.lo} and ${band.hi} per 100 started, so where it lands is mostly about which crowd it meets.`;
     }
     const finRows = sweeps.map((s) => ({ world: s.world, fin: financeRead(s.median.cfg, s.median.r, ran.fin) }));
-    return { sweeps, synth, teaching, band, finRows };
+    const cmp = ran.compare && chosen.length ? compareBusinesses(ran.biz, ran.bizB, chosen, advEng) : null;
+    return { sweeps, synth, teaching, band, finRows, cmp };
   }, [ran]);
 
-  const stale = JSON.stringify({ biz, selected, adv, fin }) !== JSON.stringify(ran);
+  const stale = JSON.stringify({ biz, bizB, compare, selected, adv, fin }) !== JSON.stringify(ran);
   const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
+  const setFieldB = (k: keyof BizInput, v: string) => setBizB((b) => ({ ...b, [k]: v }));
   const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
-  function run() { setRan({ biz, selected, adv, fin }); setLoadedEngine(null); }
+  function run() { setRan({ biz, bizB, compare, selected, adv, fin }); setLoadedEngine(null); }
 
   // Load a shared run-link on first mount: decode ?r and apply it to the inputs
   // AND to `ran`, so the identical result renders immediately. The link re-runs
@@ -387,9 +455,9 @@ export default function Page() {
     if (!token) return;
     const decoded = decodeRunLink(token);
     if (!decoded) return;
-    const { biz: b, selected: s, adv: a, fin: f } = decoded.state;
-    setBiz(b); setSelected(s); setAdv(a); setFin(f);
-    setRan({ biz: b, selected: s, adv: a, fin: f });
+    const { biz: b, bizB: bb, compare: cm, selected: s, adv: a, fin: f } = decoded.state;
+    setBiz(b); setBizB(bb); setCompare(cm); setSelected(s); setAdv(a); setFin(f);
+    setRan({ biz: b, bizB: bb, compare: cm, selected: s, adv: a, fin: f });
     if (decoded.engineVersion !== ENGINE_VERSION) setLoadedEngine(decoded.engineVersion);
   }, []);
 
@@ -514,6 +582,35 @@ export default function Page() {
             </button>
           ))}
 
+          <div className="mt-5 border-t border-card-border pt-3">
+            <button onClick={() => setCompare((c) => !c)}
+              className={`w-full text-left flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors ${compare ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
+              <span className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[10px] ${compare ? "bg-primary border-primary text-white" : "border-muted-fg"}`}>{compare ? "✓" : ""}</span>
+              <span><span className="text-sm font-medium">Compare a second business</span><span className="block text-xs text-muted-fg leading-snug">Same customers, two strategies. See where the winner flips.</span></span>
+            </button>
+            {compare && (
+              <div className="mt-3 rounded-lg border border-card-border bg-card-muted p-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">Business B</div>
+                <input value={bizB.name} onChange={(e) => setFieldB("name", e.target.value)} placeholder="Name the second idea"
+                  className="w-full rounded-lg border border-card-border bg-card px-3 py-2 text-sm mb-1" />
+                <input value={bizB.sell} onChange={(e) => setFieldB("sell", e.target.value)} placeholder="What B sells"
+                  className="w-full rounded-lg border border-card-border bg-card px-3 py-2 text-sm" />
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-1">
+                  {EXAMPLES.map((ex, i) => (
+                    <button key={i} onClick={() => setBizB({ ...ex })}
+                      className="text-xs rounded-full border border-card-border bg-card text-muted-fg px-2.5 py-1 hover:border-primary hover:text-foreground transition-colors">{ex.name}</button>
+                  ))}
+                </div>
+                {FIELDS.map((f) => (
+                  <div key={f.key} className="mt-3">
+                    <div className="text-sm mb-1.5">{f.q}</div>
+                    <OptionGroup value={bizB[f.key]} opts={f.opts} onChange={(v) => setFieldB(f.key, v)} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button onClick={run} className={`w-full mt-4 rounded-lg py-2.5 font-medium transition-colors ${stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"}`}>
             {stale ? "Run stress test →" : "Re-run"}
           </button>
@@ -606,7 +703,10 @@ export default function Page() {
               <div className="rounded-xl border border-card-border bg-card p-5 text-sm text-muted-fg">Pick at least one customer world on the left, then run.</div>
             ) : (
               <>
-                {derived.synth && (
+                {derived.cmp && (
+                  <CompareBlock cmp={derived.cmp} nameA={ran.biz.name} nameB={ran.bizB.name} />
+                )}
+                {derived.synth && !derived.cmp && (
                   <div className="rounded-xl border border-primary bg-primary/10 p-5 mb-4">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">The short version</h3>
                     <p className="text-[15px] leading-relaxed">{derived.synth}</p>
@@ -619,6 +719,9 @@ export default function Page() {
                   </div>
                 )}
 
+                {derived.cmp && (
+                  <h3 className="text-sm font-semibold mt-2 mb-3">{ran.biz.name || "Business A"} in detail<span className="text-muted-fg font-normal text-xs"> — the deep dive stays on A; B&apos;s bands are in the comparison above</span></h3>
+                )}
                 {derived.sweeps.map((s) => (
                   <WorldCard key={s.world.key} sweep={s} band={derived.band} exportCharts={exp.charts} exportNumbers={exp.numbers} />
                 ))}

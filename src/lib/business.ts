@@ -386,6 +386,8 @@ export function financeRead(cfg: SimConfig, r: SimResult, fin: FinanceInput): Fi
 // REF_SEEDS, which the engine version pins. Pure and client-safe.
 export interface RunLinkState {
   biz: BizInput;
+  bizB: BizInput;
+  compare: boolean;
   selected: Record<string, boolean>;
   adv: { rounds: number; lossAversion: number; difficulty: Difficulty };
   fin: FinanceInput;
@@ -421,13 +423,16 @@ function b64urlToBytes(token: string): Uint8Array {
 }
 
 export function encodeRunLink(s: RunLinkState): string {
+  const enc = (z: BizInput) => ({
+    n: z.name, s: z.sell, m: z.model?.trim() || undefined,
+    p: z.price, q: z.value, r: z.retention, t: z.threat,
+  });
   const payload = {
     v: LINK_SCHEMA,
     e: ENGINE_VERSION,
-    b: {
-      n: s.biz.name, s: s.biz.sell, m: s.biz.model?.trim() || undefined,
-      p: s.biz.price, q: s.biz.value, r: s.biz.retention, t: s.biz.threat,
-    },
+    b: enc(s.biz),
+    c: s.compare ? 1 : 0,
+    bb: s.compare ? enc(s.bizB) : undefined,
     w: WORLDS.filter((w) => s.selected[w.key]).map((w) => w.key),
     a: { r: s.adv.rounds, l: s.adv.lossAversion, d: s.adv.difficulty },
     f: s.fin.launchPrice > 0
@@ -447,17 +452,21 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
     if (!raw || typeof raw !== "object") return null;
     const pick = <T,>(allowed: readonly T[], v: unknown, fb: T): T =>
       (allowed as readonly unknown[]).includes(v) ? (v as T) : fb;
-    const b = (raw.b ?? {}) as Record<string, unknown>;
-
-    const biz: BizInput = {
-      name: typeof b.n === "string" ? b.n : "",
-      sell: typeof b.s === "string" ? b.s : "",
-      model: typeof b.m === "string" ? b.m : undefined,
-      price: pick(PRICES, b.p, "hold"),
-      value: pick(VALUES, b.q, "par"),
-      retention: pick(RETENTIONS, b.r, "none"),
-      threat: pick(THREATS, b.t, "none"),
+    const decBiz = (o: unknown): BizInput => {
+      const z = (o ?? {}) as Record<string, unknown>;
+      return {
+        name: typeof z.n === "string" ? z.n : "",
+        sell: typeof z.s === "string" ? z.s : "",
+        model: typeof z.m === "string" ? z.m : undefined,
+        price: pick(PRICES, z.p, "hold"),
+        value: pick(VALUES, z.q, "par"),
+        retention: pick(RETENTIONS, z.r, "none"),
+        threat: pick(THREATS, z.t, "none"),
+      };
     };
+    const biz = decBiz(raw.b);
+    const compare = raw.c === 1 || raw.c === true;
+    const bizB = raw.bb ? decBiz(raw.bb) : { name: "", sell: "", price: "hold" as PriceMove, value: "par" as ValuePosture, retention: "none" as Retention, threat: "none" as Threat };
 
     const wkeys = new Set(WORLDS.map((w) => w.key));
     const selected: Record<string, boolean> = {};
@@ -485,7 +494,7 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
       : { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
 
     return {
-      state: { biz, selected, adv, fin },
+      state: { biz, bizB, compare, selected, adv, fin },
       engineVersion: typeof raw.e === "string" ? raw.e : "unknown",
       linkVersion: typeof raw.v === "number" ? raw.v : 0,
     };
@@ -500,4 +509,72 @@ function clampNum(v: unknown, lo: number, hi: number, fb: number): number {
 }
 function clampInt(v: unknown, lo: number, hi: number, fb: number): number {
   return Math.round(clampNum(v, lo, hi, fb));
+}
+
+
+// ── Two-business A/B compare + worst-case inversion finder ───────────
+// Same customers, two strategies. For each chosen world, sweep BOTH
+// businesses (reusing sweepWorld) and compare their typical-run bands. The
+// payoff is the inversion: a world where the per-world winner contradicts the
+// overall winner, i.e. "A keeps more on average, but with THIS crowd B wins."
+// That is the reference-class lesson made concrete — the better plan can
+// depend on who the customers are, not on the plan alone. Engine untouched.
+export type Side = "a" | "b" | "tie";
+export interface WorldCompare {
+  world: CustomerWorld;
+  a: WorldSweep;
+  b: WorldSweep;
+  winner: Side;
+  gap: number;            // |a.mid − b.mid|, in kept-per-100
+}
+export interface CompareResult {
+  perWorld: WorldCompare[];
+  overall: Side;
+  overallGap: number;     // |avg(a.mid) − avg(b.mid)|
+  inversion: WorldCompare | null;  // strongest world that bucks the overall winner
+  summary: string;
+}
+
+const TIE_BAND = 3;       // within 3 kept-per-100 is a wash, not a winner
+const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
+const sideName = (s: Side, a: string, b: string) => (s === "a" ? a : s === "b" ? b : "neither");
+
+export function compareBusinesses(a: BizInput, b: BizInput, worlds: CustomerWorld[], adv?: AdvOverride): CompareResult {
+  const perWorld: WorldCompare[] = worlds.map((w) => {
+    const sa = sweepWorld(a, w, adv);
+    const sb = sweepWorld(b, w, adv);
+    const d = sa.mid - sb.mid;
+    const winner: Side = Math.abs(d) < TIE_BAND ? "tie" : d > 0 ? "a" : "b";
+    return { world: w, a: sa, b: sb, winner, gap: Math.abs(d) };
+  });
+
+  const avgA = mean(perWorld.map((x) => x.a.mid));
+  const avgB = mean(perWorld.map((x) => x.b.mid));
+  const od = avgA - avgB;
+  const overall: Side = Math.abs(od) < TIE_BAND ? "tie" : od > 0 ? "a" : "b";
+  const overallGap = Math.abs(Math.round(od));
+
+  // Inversion: a world whose winner is the OPPOSITE side from the overall winner
+  // (ties don't count as a flip). The widest such gap is the headline inversion.
+  const inversion = overall === "tie" ? null
+    : perWorld
+        .filter((x) => x.winner !== "tie" && x.winner !== overall)
+        .sort((p, q) => q.gap - p.gap)[0] ?? null;
+
+  const an = a.name || "Business A";
+  const bn = b.name || "Business B";
+  let summary: string;
+  if (overall === "tie") {
+    summary = `Across the crowds you picked, ${an} and ${bn} end up about even (within a few customers per 100). Look world by world below — the averages hide where each one pulls ahead.`;
+  } else {
+    const win = sideName(overall, an, bn);
+    summary = `Overall, ${win} keeps more across the crowds you picked, by about ${overallGap} per 100 on the typical run.`;
+    if (inversion) {
+      const flipWin = sideName(inversion.winner, an, bn);
+      summary += ` But it isn't that simple: with ${inversion.world.name.toLowerCase()}, ${flipWin} actually wins by about ${Math.round(inversion.gap)}. Same two businesses, opposite answer — the better plan depends on who your customers are.`;
+    } else {
+      summary += ` And it holds up: ${win} wins or ties in every crowd you picked, so the ranking is robust.`;
+    }
+  }
+  return { perWorld, overall, overallGap, inversion, summary };
 }
