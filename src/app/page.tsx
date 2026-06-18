@@ -24,6 +24,8 @@ import {
   bandPhrase,
   compareBusinesses,
   runsToCsv,
+  fragilityScan,
+  fragilityPhrase,
   TERM_DEFS,
   DIFFICULTY_NOISE,
   DIFFICULTY_LABEL,
@@ -37,6 +39,7 @@ import {
   type FinanceInput,
   type WorldSweep,
   type CompareResult,
+  type FragilityResult,
 } from "@/lib/business";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -372,27 +375,60 @@ function CompareBlock({ cmp, nameA, nameB }: { cmp: CompareResult; nameA: string
   );
 }
 
+// ── Within-world fragility block (how close A is to a different verdict) ──
+function FragilityBlock({ frags }: { frags: FragilityResult[] }) {
+  return (
+    <div className="rounded-xl border border-card-border bg-card p-5 mb-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-1">How fragile is this verdict?</h3>
+      <p className="text-xs text-muted-fg mb-3 leading-relaxed">
+        Holding each crowd fixed, this changes <b className="text-foreground">one</b> business move at a time and re-runs. The lightest flip is the smallest single move that tips the verdict into a different band — the trigger this business is most sensitive to.
+      </p>
+      <div className="space-y-3">
+        {frags.map((f) => {
+          const lf = f.lightest;
+          const tone = f.robust ? "good" : lf?.improves ? "warn" : "bad";
+          const dotColor = tone === "good" ? "var(--color-good)" : tone === "warn" ? "var(--color-warn)" : "var(--color-bad)";
+          return (
+            <div key={f.world.key} className="border-t border-card-border/60 pt-2.5 first:border-t-0 first:pt-0">
+              <div className="flex items-baseline gap-2 mb-0.5">
+                <span className="h-2 w-2 rounded-full shrink-0 self-center" style={{ backgroundColor: dotColor }} />
+                <span className="text-sm font-medium">{f.world.name}</span>
+                {!f.robust && lf && (
+                  <span className="text-xs text-muted-fg tabular-nums">~{f.baselineMid} → {lf.mid} per 100</span>
+                )}
+              </div>
+              <p className="text-[13.5px] leading-relaxed text-muted-fg">{fragilityPhrase(f)}</p>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-muted-fg mt-3 leading-relaxed">A &quot;flip&quot; means the typical run crosses a verdict band (holds / mostly holds / erodes / walks out). Single-lever only: combinations aren&apos;t counted, so a robust read here means no <i>one</i> move tips it, not that nothing can.</p>
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────
 const DEFAULT_BIZ: BizInput = { ...EXAMPLES[0] };
 const DEFAULT_BIZ_B: BizInput = { ...EXAMPLES[1] };
 const DEFAULT_SELECTED: Record<string, boolean> = { mainstream: true, fickle: true, loyal: true, skeptic: false, grudge: false };
 const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Difficulty };
 const DEFAULT_FIN: FinanceInput = { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
-const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: true, finance: true, methodology: true };
+const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: true, finance: true, fragility: true, methodology: true };
 
 type View = "class" | "instructor";
 type Emphasis = "behavioral" | "finance";
 type ExportSel = typeof DEFAULT_EXPORT;
-interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
+interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; fragility: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
 
 export default function Page() {
   const [biz, setBiz] = useState<BizInput>(DEFAULT_BIZ);
   const [bizB, setBizB] = useState<BizInput>(DEFAULT_BIZ_B);
   const [compare, setCompare] = useState(false);
+  const [fragility, setFragility] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>(DEFAULT_SELECTED);
   const [adv, setAdv] = useState(DEFAULT_ADV);
   const [fin, setFin] = useState<FinanceInput>(DEFAULT_FIN);
-  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, bizB: DEFAULT_BIZ_B, compare: false, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
+  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, bizB: DEFAULT_BIZ_B, compare: false, fragility: false, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [loadedEngine, setLoadedEngine] = useState<string | null>(null);
@@ -423,14 +459,15 @@ export default function Page() {
     }
     const finRows = sweeps.map((s) => ({ world: s.world, fin: financeRead(s.median.cfg, s.median.r, ran.fin) }));
     const cmp = ran.compare && chosen.length ? compareBusinesses(ran.biz, ran.bizB, chosen, advEng) : null;
-    return { sweeps, synth, teaching, band, finRows, cmp };
+    const frag = ran.fragility && chosen.length ? chosen.map((w) => fragilityScan(ran.biz, w, advEng)) : null;
+    return { sweeps, synth, teaching, band, finRows, cmp, frag };
   }, [ran]);
 
-  const stale = JSON.stringify({ biz, bizB, compare, selected, adv, fin }) !== JSON.stringify(ran);
+  const stale = JSON.stringify({ biz, bizB, compare, fragility, selected, adv, fin }) !== JSON.stringify(ran);
   const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
   const setFieldB = (k: keyof BizInput, v: string) => setBizB((b) => ({ ...b, [k]: v }));
   const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
-  function run() { setRan({ biz, bizB, compare, selected, adv, fin }); setLoadedEngine(null); }
+  function run() { setRan({ biz, bizB, compare, fragility, selected, adv, fin }); setLoadedEngine(null); }
 
   // Load a shared run-link on first mount: decode ?r and apply it to the inputs
   // AND to `ran`, so the identical result renders immediately. The link re-runs
@@ -444,9 +481,9 @@ export default function Page() {
     if (!token) return;
     const decoded = decodeRunLink(token);
     if (!decoded) return;
-    const { biz: b, bizB: bb, compare: cm, selected: s, adv: a, fin: f } = decoded.state;
-    setBiz(b); setBizB(bb); setCompare(cm); setSelected(s); setAdv(a); setFin(f);
-    setRan({ biz: b, bizB: bb, compare: cm, selected: s, adv: a, fin: f });
+    const { biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f } = decoded.state;
+    setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
+    setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
     if (decoded.engineVersion !== ENGINE_VERSION) setLoadedEngine(decoded.engineVersion);
   }, []);
 
@@ -620,6 +657,14 @@ export default function Page() {
             )}
           </div>
 
+          <div className="mt-3">
+            <button onClick={() => setFragility((c) => !c)}
+              className={`w-full text-left flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors ${fragility ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
+              <span className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[10px] ${fragility ? "bg-primary border-primary text-white" : "border-muted-fg"}`}>{fragility ? "✓" : ""}</span>
+              <span><span className="text-sm font-medium">Fragility check</span><span className="block text-xs text-muted-fg leading-snug">Smallest single move that flips each world&apos;s verdict. Robust, or one tweak away?</span></span>
+            </button>
+          </div>
+
           <button onClick={run} className={`w-full mt-4 rounded-lg py-2.5 font-medium transition-colors ${stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"}`}>
             {stale ? "Run stress test →" : "Re-run"}
           </button>
@@ -676,7 +721,7 @@ export default function Page() {
               <div className="mt-2 rounded-lg border border-card-border bg-card-muted p-3">
                 <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-fg mb-1.5">Saved copy includes</div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                  {([["model", "Business model"], ["teaching", "Class prompt"], ["charts", "Charts"], ["numbers", "Numbers"], ["finance", "Finance table"], ["methodology", "Methodology"]] as [keyof ExportSel, string][]).map(([k, label]) => (
+                  {([["model", "Business model"], ["teaching", "Class prompt"], ["charts", "Charts"], ["numbers", "Numbers"], ["finance", "Finance table"], ["fragility", "Fragility check"], ["methodology", "Methodology"]] as [keyof ExportSel, string][]).map(([k, label]) => (
                     <label key={k} className="flex items-center gap-1.5 text-xs text-foreground cursor-pointer">
                       <input type="checkbox" checked={exp[k]} onChange={() => toggleExp(k)} className="accent-primary" />
                       {label}
@@ -739,6 +784,12 @@ export default function Page() {
                   <WorldCard key={s.world.key} sweep={s} band={derived.band} exportCharts={exp.charts} exportNumbers={exp.numbers} />
                 ))}
               </>
+            )}
+
+            {derived.frag && derived.frag.length > 0 && (
+              <div className={exp.fragility ? "" : "export-hidden"}>
+                <FragilityBlock frags={derived.frag} />
+              </div>
             )}
 
             {instructor && ran.fin.launchPrice > 0 && derived.sweeps.length > 0 && (

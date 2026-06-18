@@ -423,6 +423,7 @@ export interface RunLinkState {
   biz: BizInput;
   bizB: BizInput;
   compare: boolean;
+  fragility: boolean;
   selected: Record<string, boolean>;
   adv: { rounds: number; lossAversion: number; difficulty: Difficulty };
   fin: FinanceInput;
@@ -467,6 +468,7 @@ export function encodeRunLink(s: RunLinkState): string {
     e: ENGINE_VERSION,
     b: enc(s.biz),
     c: s.compare ? 1 : 0,
+    fr: s.fragility ? 1 : 0,
     bb: s.compare ? enc(s.bizB) : undefined,
     w: WORLDS.filter((w) => s.selected[w.key]).map((w) => w.key),
     a: { r: s.adv.rounds, l: s.adv.lossAversion, d: s.adv.difficulty },
@@ -501,6 +503,7 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
     };
     const biz = decBiz(raw.b);
     const compare = raw.c === 1 || raw.c === true;
+    const fragility = raw.fr === 1 || raw.fr === true;
     const bizB = raw.bb ? decBiz(raw.bb) : { name: "", sell: "", price: "hold" as PriceMove, value: "par" as ValuePosture, retention: "none" as Retention, threat: "none" as Threat };
 
     const wkeys = new Set(WORLDS.map((w) => w.key));
@@ -529,7 +532,7 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
       : { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
 
     return {
-      state: { biz, bizB, compare, selected, adv, fin },
+      state: { biz, bizB, compare, fragility, selected, adv, fin },
       engineVersion: typeof raw.e === "string" ? raw.e : "unknown",
       linkVersion: typeof raw.v === "number" ? raw.v : 0,
     };
@@ -649,4 +652,104 @@ export function runsToCsv(sweeps: WorldSweep[]): string {
     }
   }
   return lines.join("\n");
+}
+
+
+// ── Within-world single-lever fragility sweep ────────────────────────
+// Hold ONE customer world fixed and ask: how close is this business to a
+// different verdict? Enumerate every single-lever change to the four
+// business moves (each lever to each of its OTHER allowed values, the rest
+// held), re-sweep with the same seed set, and find the changes that cross a
+// verdict-tone boundary. The "lightest" flip is the one whose new band-mid
+// lands closest to the line it crosses — the smallest nudge that still tips
+// the verdict, i.e. the most fragile trigger. If nothing flips, the business
+// is robust in that world. Reuses sweepWorld + bandPhrase, so tone matches
+// the cards exactly. Engine untouched; this is just more runs.
+export type VerdictTone = Layman["tone"];           // "" | "good" | "warn" | "bad"
+const TONE_RANK: Record<string, number> = { bad: 0, warn: 1, "": 2, good: 3 };
+const LEVER_NOUN: Record<LeverKey, string> = {
+  price: "price move", value: "value level",
+  retention: "retention play", threat: "competitive threat",
+};
+function optLabel(lever: LeverKey, v: string): string {
+  const f = FIELDS.find((x) => x.key === lever);
+  return f?.opts.find((o) => o.v === v)?.t ?? v;
+}
+
+export interface LeverFlip {
+  lever: LeverKey;
+  leverNoun: string;
+  fromLabel: string;
+  toLabel: string;
+  mid: number;            // new band mid (kept per 100)
+  tone: VerdictTone;
+  delta: number;          // mid − baselineMid (signed)
+  improves: boolean;      // tone class moved up vs baseline
+}
+export interface FragilityResult {
+  world: CustomerWorld;
+  baselineMid: number;
+  baselineTone: VerdictTone;
+  flips: LeverFlip[];           // every single-lever change that flips the tone class
+  lightest: LeverFlip | null;   // smallest |delta| among flips: the most fragile trigger
+  totalVariants: number;        // how many single-lever changes were tried
+  robust: boolean;              // no single-lever change flips the verdict
+}
+
+export function fragilityScan(biz: BizInput, world: CustomerWorld, adv?: AdvOverride): FragilityResult {
+  const base = sweepWorld(biz, world, adv);
+  const baselineMid = base.mid;
+  const baselineTone = bandPhrase(world, base).tone;
+  const baseRank = TONE_RANK[baselineTone];
+
+  const levers: LeverKey[] = ["price", "value", "retention", "threat"];
+  const flips: LeverFlip[] = [];
+  let totalVariants = 0;
+
+  for (const lever of levers) {
+    const field = FIELDS.find((f) => f.key === lever);
+    if (!field) continue;
+    for (const opt of field.opts) {
+      if (opt.v === biz[lever]) continue;      // a real change only
+      totalVariants++;
+      const variant: BizInput = { ...biz, [lever]: opt.v };
+      const sw = sweepWorld(variant, world, adv);
+      const tone = bandPhrase(world, sw).tone;
+      const rank = TONE_RANK[tone];
+      if (rank !== baseRank) {
+        flips.push({
+          lever, leverNoun: LEVER_NOUN[lever],
+          fromLabel: optLabel(lever, biz[lever]),
+          toLabel: opt.t,
+          mid: sw.mid, tone,
+          delta: sw.mid - baselineMid,
+          improves: rank > baseRank,
+        });
+      }
+    }
+  }
+
+  // Lightest = the flip that crosses a verdict line by the least: the smallest
+  // band-mid move that still changes the tone class. Ties break toward the
+  // smaller |delta| then the bigger absolute mid (closer to a "holds" read).
+  const lightest = flips.length
+    ? [...flips].sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || b.mid - a.mid)[0]
+    : null;
+
+  return {
+    world, baselineMid, baselineTone,
+    flips, lightest, totalVariants,
+    robust: flips.length === 0,
+  };
+}
+
+// One plain sentence per world for the fragility block.
+export function fragilityPhrase(f: FragilityResult): string {
+  if (f.robust) {
+    return `Robust here: no single change to one move flips the verdict. Every one-lever tweak (of ${f.totalVariants} tried) leaves it in the same band.`;
+  }
+  const lf = f.lightest!;
+  const dir = lf.improves ? "up to a better verdict" : "down to a worse one";
+  const verb = lf.improves ? "rescues" : "breaks";
+  return `One move from a different verdict. The lightest flip ${verb} it: change ${lf.leverNoun} from "${lf.fromLabel}" to "${lf.toLabel}" and the typical run moves ${dir} (about ${f.baselineMid} → ${lf.mid} per 100). ${f.flips.length} of ${f.totalVariants} single-lever changes flip it.`;
 }
