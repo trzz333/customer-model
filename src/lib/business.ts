@@ -94,7 +94,7 @@ export const TERM_DEFS = {
   tipping: "The round where a lot of customers leave at once, instead of a few at a time. Shown as a round number like r12.",
   contribution: "The money left from a sale after you subtract what it cost to deliver it.",
   npv: "What future money is worth today. A dollar next year is worth a little less than a dollar now.",
-  ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is a common rule-of-thumb for healthy.",
+  ltvcac: "What a customer is worth to you versus what it cost to acquire them (their Customer Acquisition Cost, or CAC). Above 1 means worth more than they cost; 3 or more is a common rule-of-thumb for healthy.",
   payback: "How many rounds until a customer pays back what it cost to get them. Shown as a round number: r0 means within the first round.",
   loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
   present: "People grab a reward now even when waiting a bit would be better.",
@@ -219,6 +219,7 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const tip = r.tippingRound;
   const hasHike = cfg.hikeRound > 0 && cfg.hikeSize >= 8;
   const hasComp = cfg.competitorRound > 0 && cfg.competitorOffer >= 20;
+  const priceCut = cfg.priceIndex < 100;
   const thinValue = cfg.valueIndex < 90 || cfg.incidentRound > 0;
   const promoLeak = r.exploitationCost > r.totalRevenue * 0.08;
   let cause: string;
@@ -231,7 +232,7 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   else if (promoLeak)
     cause = `The standing discount held some people, but the deal-chasers milked it: a chunk of revenue went to defending churn instead of building loyalty.`;
   else if (churnPct < 15)
-    cause = `Nothing shocked them. Steady price, value that matched the promise, and a crowd that doesn't bolt at the first wobble.`;
+    cause = cfg.priceIndex < 100 ? `Nothing read as a loss to punish: you were undercutting on price, not raising it, and the value held up, so even the score-keepers had no reason to walk.` : hasHike ? `The increase was small enough, or the value strong enough, that few customers treated it as a loss worth leaving over.` : `Nothing shocked them. Steady price, value that matched the promise, and a crowd that doesn't bolt at the first wobble.`;
   else
     cause = `No single shock, just steady attrition as small grievances piled up faster than this crowd would tolerate.`;
 

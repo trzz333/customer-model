@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   runSimulation,
   verdict,
@@ -81,8 +81,23 @@ function snapshot(text: string): string {
 // click toggle covers touch where there is no hover.
 function Term({ children, def }: { children: React.ReactNode; def: string }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: Event) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onScroll = () => setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    window.addEventListener("scroll", onScroll, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("scroll", onScroll, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
   return (
-    <span className="relative inline-block align-baseline">
+    <span ref={ref} className="relative inline-block align-baseline">
       <button type="button" title={def} onClick={() => setOpen((o) => !o)}
         className="cursor-help underline decoration-dotted decoration-muted-fg/70 underline-offset-2 text-foreground">
         {children}
@@ -166,7 +181,7 @@ function SimChart({ result, events }: { result: SimResult; events: EventMark[] }
   );
 }
 
-interface Warning { label: string; tone: "bad" | "warn"; archKey?: StratKey; archName?: string; archSuffix?: string }
+interface Warning { label: string; tone: "bad" | "warn"; archKey?: StratKey; archName?: string; archSuffix?: string; def?: string; lead?: string; tail?: string }
 function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
   const w: Warning[] = [];
   const churnPct = Math.round((1 - r.endingActive / r.startingActive) * 100);
@@ -174,7 +189,7 @@ function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
   else if (churnPct >= 30) w.push({ label: `Erosion: ~${churnPct}% lost`, tone: "warn" });
   if (r.tippingRound !== null) w.push({ label: `Tipping point at round ${r.tippingRound}`, tone: "bad" });
   if (r.exploitationCost > r.totalRevenue * 0.08) w.push({ label: "Promo margin leak", tone: "warn" });
-  if (r.minReputation < 70) w.push({ label: `Reputation rot to ${Math.round(r.minReputation)}`, tone: "warn" });
+  if (r.minReputation < 70) w.push({ label: `Reputation rot to ${Math.round(r.minReputation)}`, tone: "warn", def: DEF.reputation, lead: "Reputation", tail: `rot to ${Math.round(r.minReputation)}` });
   const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
     .filter((x) => r.perArch[x.a.key].start > 0).sort((p, q) => q.lost - p.lost)[0];
   if (worst && worst.lost > 0.5) w.push({ label: `${worst.a.name} ${Math.round(worst.lost * 100)}% gone`, tone: "bad", archKey: worst.a.key, archName: worst.a.name, archSuffix: `${Math.round(worst.lost * 100)}% gone` });
@@ -306,14 +321,14 @@ function WorldCard({ sweep, band, exportCharts, exportNumbers }: CardProps) {
       {warns.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {warns.map((w, i) => (
-            <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"}`}>{w.archKey ? <><Term def={ARCH_DEF[w.archKey]}>{w.archName}</Term> {w.archSuffix}</> : w.label}</span>
+            <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"}`}>{w.archKey ? <><Term def={ARCH_DEF[w.archKey]}>{w.archName}</Term> {w.archSuffix}</> : w.def ? <><Term def={w.def}>{w.lead}</Term> {w.tail}</> : w.label}</span>
           ))}
         </div>
       )}
       <details className={`numbers mt-3 ${exportNumbers ? "" : "export-hidden"}`}>
         <summary className="cursor-pointer text-xs text-primary-light">Show the numbers</summary>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
-          {[[<Term key="c" def={DEF.churn}>Net churn</Term>, `${churnPct}%`], ["Ending / start", `${fmt(r.endingActive)} / ${fmt(r.startingActive)}`], ["Lowest rep.", `${Math.round(r.minReputation)}`], [<Term key="t" def={DEF.tipping}>Tipping</Term>, r.tippingRound !== null ? `r${r.tippingRound}` : "none"]].map((m, i) => (
+          {[[<Term key="c" def={DEF.churn}>Net churn</Term>, `${churnPct}%`], ["Ending / start", `${fmt(r.endingActive)} / ${fmt(r.startingActive)}`], [<Term key="rep" def={DEF.reputation}>Lowest rep.</Term>, `${Math.round(r.minReputation)}`], [<Term key="t" def={DEF.tipping}>Tipping</Term>, r.tippingRound !== null ? `r${r.tippingRound}` : "none"]].map((m, i) => (
             <div key={i} className="rounded-lg border border-card-border bg-card-muted px-3 py-2"><div className="text-xs text-muted-fg">{m[0]}</div><div className="text-base font-semibold tabular-nums">{m[1]}</div></div>
           ))}
         </div>
@@ -606,7 +621,7 @@ export default function Page() {
             : financeLed
               ? "Finance focus: leads with the dollars (LTV, payback, NPV); the behavioral read stays one click away."
               : view === "teaching"
-                ? "Teaching mode: plain language with the full teaching controls. No behavioral-science background needed — every underlined term explains itself on hover."
+                ? "Teaching mode: plain language with the full teaching controls. No behavioral-science background needed — click any underlined term and it defines itself."
                 : "Deep dive: adds the loss-aversion dial (λ) and the cited methodology on top of the teaching controls."}
           {" "}Any mode is open to anyone — these set how much is shown, not who may see it.
         </p>
