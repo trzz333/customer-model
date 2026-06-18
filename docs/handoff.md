@@ -8,14 +8,14 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live target https://customer-model.council.fyi.
 
 ## PHASE
-Plain-language input layer built, pushed, and deploying. Engine frozen. The
-earlier Vercel block was a bad git author email (jeff@local) — Vercel rejects
-commits from unrecognized authors. Fixed: repo author set to the account email
-and a fresh commit pushed so the deploying commit has a valid author.
+Plain-language input layer is LIVE and verified at customer-model.council.fyi
+(production deploy 83f1d1a → dpl_7S3Bi, state READY, confirmed in-browser).
+Engine frozen. The earlier Vercel block was a bad git author email (jeff@local);
+fixed locally and now globally, so future commits won't re-trigger it.
 
 ## LAST COMMIT
-4e5991b — feat: plain-language input layer (business-once, customer-world stress
-lenses, layman analysis). A docs/handoff commit sits on top of it.
+83f1d1a — fix: valid commit author email; input layer is the live production
+deploy. (4e5991b is the substantive feature commit; docs/handoff commits on top.)
 
 ## CURRENT STATE
 The app now has two axes. You define one business in plain terms (name,
@@ -34,19 +34,17 @@ invariant holds in the new render. `tsc` clean, `next build` green (11.1 kB).
 ## NEXT MOVE
 Build the two-business A/B side-by-side compare (the strategy-genre gap the
 audit flagged): hold the customer world fixed, run move A vs move B in one view.
-Engine stays frozen; UI plus a second cfg. (The deploy block is resolved; the
-input layer is live or finishing its build.)
+Engine stays frozen; UI plus a second cfg.
 
 ## DEPLOY STATE
 - Local repo: YES, branch `main`, scoped commits.
-- GitHub: YES, trzz333/customer-model (private), `main` pushed through 4e5991b.
-- Vercel build: was BLOCKED on an invalid commit author email (jeff@local) —
-  Vercel rejects commits from unrecognized authors, which is why 4e5991b and the
-  prior 57985c9/17f2e66 all blocked while older deploys were fine. Fixed: repo
-  `git config user.email` set to masterson3433@gmail.com and a fresh commit
-  pushed so the deploying commit has a valid author. Verify it reaches READY.
-- Subdomain customer-model.council.fyi: attached, serving over HTTPS; serves the
-  new valid-author deploy once it goes READY.
+- GitHub: YES, trzz333/customer-model (private), `main` pushed through 83f1d1a.
+- Vercel build: READY and live. The earlier BLOCKED deploys were rejected for an
+  invalid commit author email (jeff@local). Fixed: `git config user.email` set to
+  masterson3433@gmail.com locally AND globally; commit 83f1d1a built clean to
+  READY (dpl_7S3Bi) and is the live production deploy.
+- Subdomain customer-model.council.fyi: attached, serving the new layer over
+  HTTPS, verified in-browser.
 - Env vars: NO. ANTHROPIC_API_KEY only needed if the optional voice/LLM-autofill
   layer ships; Jeff pastes it into Vercel env then.
 
@@ -85,3 +83,7 @@ globals.css; never build a separate clean export that drops the verdict.
 5. Two standalone HTML prototypes of the input layer live outside the repo
    (Claude outputs, not committed): v1 business-type templates, v2 the
    customer-world reframe that became the shipped design.
+6. Small cosmetic polish for next session (live, not urgent): in a net-growth
+   world the card still prints "first to leave: X — that's the lever to pull
+   first," which reads odd next to a Grows headline. Suppress the who-leaves /
+   lever line in laymanAnalysis when the scenario nets positive.
