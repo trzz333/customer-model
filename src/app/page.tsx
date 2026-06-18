@@ -15,6 +15,9 @@ import {
   businessToCfg,
   laymanAnalysis,
   teachingPrompt,
+  referenceBand,
+  placeInBand,
+  unitEconomics,
   type BizInput,
   type CustomerWorld,
   type Layman,
@@ -166,7 +169,11 @@ export default function Page() {
       synth = `Tested against one customer world. Add another to see how much the outcome depends on who your customers are, not just your business.`;
     }
     const teaching = chosen.length ? teachingPrompt(ran.biz, chosen) : "";
-    return { runs, synth, teaching };
+    const band = runs.length ? referenceBand(ran.biz, ran.adv) : null;
+    if (band && runs.length >= 1 && band.spread >= 8) {
+      synth += ` Across every customer world this business swings between keeping about ${band.lo} and ${band.hi} of 100, so where it lands is mostly about which crowd it meets.`;
+    }
+    return { runs, synth, teaching, band };
   }, [ran]);
 
   const stale = JSON.stringify({ biz, selected, adv }) !== JSON.stringify(ran);
@@ -199,6 +206,15 @@ export default function Page() {
             className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm mb-2" />
           <input value={biz.sell} onChange={(e) => setField("sell", e.target.value)} placeholder="What you sell (e.g. a $12/mo note app)"
             className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm" />
+          <details className="mt-2 group">
+            <summary className="cursor-pointer text-xs text-muted-fg hover:text-foreground">
+              Paste a full business model (optional)
+            </summary>
+            <textarea value={biz.model ?? ""} onChange={(e) => setField("model", e.target.value)}
+              placeholder="Paste a detailed business model here — e.g. a worked-up idea from an AI. It travels with your write-up and saved copy. You still set the four moves below; that translation is the exercise."
+              rows={6}
+              className="w-full mt-2 rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm leading-relaxed resize-y min-h-[6rem] max-h-[22rem]" />
+          </details>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {EXAMPLES.map((ex, i) => (
               <button key={i} onClick={() => setBiz({ ...ex })}
@@ -252,6 +268,13 @@ export default function Page() {
             </div>
             <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
 
+            {ran.biz.model?.trim() ? (
+              <details className="numbers mb-4 rounded-xl border border-card-border bg-card-muted p-4">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-fg">Business model under test</summary>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap mt-2">{ran.biz.model.trim()}</p>
+              </details>
+            ) : null}
+
             {derived.runs.length === 0 ? (
               <div className="rounded-xl border border-card-border bg-card p-5 text-sm text-muted-fg">Pick at least one customer world on the left, then run.</div>
             ) : (
@@ -287,6 +310,11 @@ export default function Page() {
                         <span>First to leave: <b className="text-foreground">{worst && worst.lost > 0.3 ? worst.a.name : "no single segment cracked"}</b></span>
                         <span>{r.tippingRound !== null ? <>Sudden break at <b className="text-foreground">round {r.tippingRound}</b></> : <>No sudden break, <b className="text-foreground">gradual</b></>}</span>
                       </div>
+                      {derived.band && (
+                        <p className="text-xs text-muted-fg mb-3 leading-relaxed">
+                          <b className="text-foreground">Is ~{lay.keep} good?</b> {placeInBand(lay.keep, derived.band)} — across every customer world this same business keeps {derived.band.lo}–{derived.band.hi} of 100. {unitEconomics(cfg, r)}
+                        </p>
+                      )}
                       <SimChart result={r} events={buildEvents(cfg)} />
                       <div className="text-xs text-muted-fg border-t border-card-border pt-2.5 mt-2.5 leading-relaxed">
                         <b className="text-foreground">Engine verdict:</b> {verdict(cfg, r)}

@@ -9,6 +9,7 @@
 import {
   DEFAULT_CONFIG,
   ARCHETYPES,
+  runSimulation,
   type SimConfig,
   type SimResult,
   type StratKey,
@@ -22,6 +23,7 @@ export type Threat = "none" | "mild" | "hard";
 export interface BizInput {
   name: string;
   sell: string;
+  model?: string;   // optional long-form paste: a full business model to stress-test
   price: PriceMove;
   value: ValuePosture;
   retention: Retention;
@@ -46,7 +48,8 @@ export interface CustomerWorld {
 }
 
 export interface FieldOpt { v: string; t: string; note?: string }
-export interface Field { key: keyof BizInput; q: string; opts: FieldOpt[] }
+export type LeverKey = "price" | "value" | "retention" | "threat";
+export interface Field { key: LeverKey; q: string; opts: FieldOpt[] }
 
 // ── The plain-language business questions (the front door) ───────────
 export const FIELDS: Field[] = [
@@ -182,8 +185,63 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
     .filter((x) => r.perArch[x.a.key].start > 0).sort((x, y) => y.lost - x.lost)[0];
   let who = "";
-  if (worst && worst.lost > 0.4) who = ` The first out the door were the ${worst.a.name.toLowerCase()} (${Math.round(worst.lost * 100)}% gone), ${GLOSS[worst.a.key]}. That's the lever to pull first.`;
+  if (!grow && worst && worst.lost > 0.4) who = ` The first out the door were the ${worst.a.name.toLowerCase()} (${Math.round(worst.lost * 100)}% gone), ${GLOSS[worst.a.key]}. That's the lever to pull first.`;
   return { tone, headline, analysis: cause + who, keep, grow };
+}
+
+// ── Outside view: reference-class band + noise band in one sweep ─────
+// Run THIS business across every customer world and several seeds so a
+// single "keep 60 of 100" can be read against the full range of how the
+// same business fares. Reference-class forecasting (vary the world) and a
+// Kahneman noise band (vary the seed) fall out of the same cheap sweep —
+// the engine is deterministic and tiny, so this is just more runs.
+const REF_SEEDS = [12345, 222, 777, 4040, 90909, 31337, 56789];
+
+export interface RefBand {
+  lo: number; mid: number; hi: number;        // keep% across the reference class
+  perWorld: Record<string, number>;           // median keep% per world
+  spread: number;                             // hi - lo, the width of the band
+}
+
+export function referenceBand(biz: BizInput, adv?: AdvOverride): RefBand {
+  const perWorld: Record<string, number> = {};
+  const all: number[] = [];
+  for (const w of WORLDS) {
+    const keeps: number[] = [];
+    for (const seed of REF_SEEDS) {
+      const r = runSimulation(businessToCfg(biz, w, { ...adv, seed }));
+      const keep = Math.round((r.endingActive / r.startingActive) * 100);
+      keeps.push(keep); all.push(keep);
+    }
+    keeps.sort((a, b) => a - b);
+    perWorld[w.key] = keeps[Math.floor(keeps.length / 2)];
+  }
+  all.sort((a, b) => a - b);
+  const lo = all[0], hi = all[all.length - 1];
+  return { lo, hi, mid: all[Math.floor(all.length / 2)], perWorld, spread: hi - lo };
+}
+
+// Where one keep% sits in that band, in words a freshman reads without a stats class.
+export function placeInBand(keep: number, band: RefBand): string {
+  if (band.spread < 8) return "about what it does with any of these crowds";
+  const frac = (keep - band.lo) / (band.hi - band.lo || 1);
+  if (frac >= 0.75) return "near the best this business does with any crowd";
+  if (frac <= 0.25) return "near the worst this business does with any crowd";
+  return "middle of the pack for this business";
+}
+
+// ── Fermi / lifetime-value sanity read on the existing result ────────
+// Honest and unit-free: the input layer never captured a real dollar price,
+// so value is stated in "rounds of full price per starting customer" rather
+// than invented money. Names the promo leak when it is material.
+export function unitEconomics(cfg: SimConfig, r: SimResult): string {
+  const perCust = r.totalRevenue / (r.startingActive || 1) / (cfg.priceIndex || 100);
+  let s = `Each starting customer brought in about ${perCust.toFixed(1)} rounds of full-price revenue over the ${cfg.rounds}-round run.`;
+  if (r.exploitationCost > r.totalRevenue * 0.08) {
+    const leak = Math.round((r.exploitationCost / r.totalRevenue) * 100);
+    s += ` Roughly ${leak}% of revenue leaked straight back out defending churn with the promo.`;
+  }
+  return s;
 }
 
 // ── Teaching prompt: drives a one-lever A/B by hand (the assignment hook) ──
