@@ -91,11 +91,11 @@ export const TERM_DEFS = {
   churn: "Customers leaving or canceling.",
   retention: "Keeping the customers you already have.",
   reputation: "How good people think you are. A good reputation brings in new customers by word of mouth.",
-  tipping: "The round where a lot of customers leave at once, instead of a few at a time.",
+  tipping: "The round where a lot of customers leave at once, instead of a few at a time. Shown as a round number like r12.",
   contribution: "The money left from a sale after you subtract what it cost to deliver it.",
   npv: "What future money is worth today. A dollar next year is worth a little less than a dollar now.",
   ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is a common rule-of-thumb for healthy.",
-  payback: "How many rounds until a customer pays back what it cost to get them.",
+  payback: "How many rounds until a customer pays back what it cost to get them. Shown as a round number: r0 means within the first round.",
   loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
   present: "People grab a reward now even when waiting a bit would be better.",
   worlds: "Different kinds of crowds — like loyal regulars versus deal-chasers.",
@@ -118,6 +118,22 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: "LTV:CAC", def: TERM_DEFS.ltvcac },
   { term: "Payback", def: TERM_DEFS.payback },
 ];
+
+// Plain-language, no-game-theory definitions for the seven archetypes, keyed
+// by the frozen engine's StratKey. Used as inline tap-to-define notes wherever
+// an archetype name renders in the results (the headline, the warning chips,
+// the numbers table) so a novice never meets an undefined type at the point of
+// use. The glossary keeps the fuller taglines and the Axelrod aside; these are
+// the one-sentence front-door version. One short sentence each (popover-sized).
+export const ARCH_DEF: Record<StratKey, string> = {
+  reciprocal: "Mirrors how you treat them: raise price or cut quality and they start shopping; win them back and they return.",
+  forgiving: "Patient. Forgives a single slip and only leaves after two bad rounds in a row.",
+  opportunist: "Pure deal-chaser. Hunts discounts and leaves the moment something cheaper shows up.",
+  inertial: "Stays out of habit, absorbing hikes and quality drops for a long time, then leaves all at once.",
+  grudger: "Quits for good after one bad experience, like a hidden fee or a service failure.",
+  detective: "Tests you early. Behaves if you hold firm; takes advantage if you keep giving in.",
+  pavlov: "Repeats whatever worked last time. Sticky when happy, quick to flip when burned.",
+};
 
 // ── Customer worlds (the reusable templates) ─────────────────────────
 // A world is a particular mix of the seven archetypes plus how impulsively

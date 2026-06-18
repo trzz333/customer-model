@@ -53,11 +53,12 @@ export default function GlossaryPage() {
       <section className="mb-10">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-1">Customer archetypes</h2>
         <p className="text-sm text-muted-fg mb-3 max-w-2xl">
-          Seven ways a customer reacts to your moves, named after strategies from
-          Axelrod&apos;s repeated-game tournaments. They are a vocabulary for behavior,
-          not players in a symmetric game: your moves are the scenario, and each
-          archetype reacts to them by a fixed rule. Every customer world is a mix
-          of these.
+          Seven ways a customer can react to your moves, from loyal regulars to
+          deal-chasers who leave the moment something cheaper appears. Each one
+          follows a fixed rule, and every customer world is a mix of them. The
+          names borrow from strategies in Axelrod&apos;s repeated-game tournaments,
+          but you don&apos;t need any game theory to read them: the plain
+          description is what matters.
         </p>
         <dl className="space-y-3">
           {ARCHETYPES.map((a) => (

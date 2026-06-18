@@ -8,6 +8,7 @@ import {
   ENGINE_VERSION,
   type SimConfig,
   type SimResult,
+  type StratKey,
 } from "@/lib/sim";
 import {
   FIELDS,
@@ -27,6 +28,7 @@ import {
   fragilityScan,
   fragilityPhrase,
   TERM_DEFS,
+  ARCH_DEF,
   DIFFICULTY_NOISE,
   DIFFICULTY_LABEL,
   DIFFICULTY_NOTE,
@@ -164,7 +166,7 @@ function SimChart({ result, events }: { result: SimResult; events: EventMark[] }
   );
 }
 
-interface Warning { label: string; tone: "bad" | "warn" }
+interface Warning { label: string; tone: "bad" | "warn"; archKey?: StratKey; archName?: string; archSuffix?: string }
 function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
   const w: Warning[] = [];
   const churnPct = Math.round((1 - r.endingActive / r.startingActive) * 100);
@@ -175,7 +177,7 @@ function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
   if (r.minReputation < 70) w.push({ label: `Reputation rot to ${Math.round(r.minReputation)}`, tone: "warn" });
   const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
     .filter((x) => r.perArch[x.a.key].start > 0).sort((p, q) => q.lost - p.lost)[0];
-  if (worst && worst.lost > 0.5) w.push({ label: `${worst.a.name} ${Math.round(worst.lost * 100)}% gone`, tone: "bad" });
+  if (worst && worst.lost > 0.5) w.push({ label: `${worst.a.name} ${Math.round(worst.lost * 100)}% gone`, tone: "bad", archKey: worst.a.key, archName: worst.a.name, archSuffix: `${Math.round(worst.lost * 100)}% gone` });
   return w;
 }
 
@@ -287,7 +289,7 @@ function WorldCard({ sweep, band, exportCharts, exportNumbers }: CardProps) {
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-fg mb-3">
         <span>Typically end with <b className="text-foreground">~{sweep.mid}</b> per 100 started</span>
-        <span>First to leave: <b className="text-foreground">{worst && worst.lost > 0.3 ? worst.a.name : "no single segment cracked"}</b></span>
+        <span>First to leave: {worst && worst.lost > 0.3 ? <b className="text-foreground"><Term def={ARCH_DEF[worst.a.key]}>{worst.a.name}</Term></b> : <b className="text-foreground">no single segment cracked</b>}</span>
         <span>{r.tippingRound !== null ? <><Term def={DEF.tipping}>Sudden break</Term> at <b className="text-foreground">round {r.tippingRound}</b></> : <>No sudden break, <b className="text-foreground">gradual</b></>}</span>
       </div>
       {band && (
@@ -304,14 +306,14 @@ function WorldCard({ sweep, band, exportCharts, exportNumbers }: CardProps) {
       {warns.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {warns.map((w, i) => (
-            <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"}`}>{w.label}</span>
+            <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"}`}>{w.archKey ? <><Term def={ARCH_DEF[w.archKey]}>{w.archName}</Term> {w.archSuffix}</> : w.label}</span>
           ))}
         </div>
       )}
       <details className={`numbers mt-3 ${exportNumbers ? "" : "export-hidden"}`}>
         <summary className="cursor-pointer text-xs text-primary-light">Show the numbers</summary>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
-          {[["Net churn", `${churnPct}%`], ["Ending / start", `${fmt(r.endingActive)} / ${fmt(r.startingActive)}`], ["Lowest rep.", `${Math.round(r.minReputation)}`], ["Tipping", r.tippingRound !== null ? `r${r.tippingRound}` : "none"]].map((m, i) => (
+          {[[<Term key="c" def={DEF.churn}>Net churn</Term>, `${churnPct}%`], ["Ending / start", `${fmt(r.endingActive)} / ${fmt(r.startingActive)}`], ["Lowest rep.", `${Math.round(r.minReputation)}`], [<Term key="t" def={DEF.tipping}>Tipping</Term>, r.tippingRound !== null ? `r${r.tippingRound}` : "none"]].map((m, i) => (
             <div key={i} className="rounded-lg border border-card-border bg-card-muted px-3 py-2"><div className="text-xs text-muted-fg">{m[0]}</div><div className="text-base font-semibold tabular-nums">{m[1]}</div></div>
           ))}
         </div>
@@ -320,7 +322,7 @@ function WorldCard({ sweep, band, exportCharts, exportNumbers }: CardProps) {
             const pa = r.perArch[a.key]; const sr = pa.start ? pa.survived / pa.start : 0;
             return (
               <div key={a.key} className="flex items-center gap-3">
-                <div className="w-36 shrink-0 text-xs" style={{ color: a.color }}>{a.name}</div>
+                <div className="w-36 shrink-0 text-xs" style={{ color: a.color }}><Term def={ARCH_DEF[a.key]}>{a.name}</Term></div>
                 <div className="flex-1 h-2.5 rounded-full bg-card-muted overflow-hidden"><div className="h-full rounded-full" style={{ width: `${sr * 100}%`, backgroundColor: a.color, opacity: 0.85 }} /></div>
                 <div className="w-16 text-right text-xs tabular-nums text-muted-fg"><b className="text-foreground">{Math.round(sr * 100)}%</b> stay</div>
               </div>
