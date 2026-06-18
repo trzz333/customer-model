@@ -1,6 +1,6 @@
 ---
 name: ai-handoff
-description: End-of-session handoff for the Customer Model project — the business-school AI customer stress-test web app (customer-model.council.fyi). Trigger when Jeff says "/ai-handoff", "/handoff", "handoff", "wrap up", "push and handoff", "session done", or proactively when context is heavy (30+ tool calls, the engine or UI changed materially, the deploy state moved, a design decision was resolved, or research that changes scope was verified). Updates docs/handoff.md IN PLACE in a terse fixed schema, evicts resolved detail to docs/history.md, commits and pushes with a SCOPED git add (never -A) to the project repo, and outputs ONE Claude bootstrap message in its own copy/paste code block. Ends with a plain-language "FOR JEFF — DO THIS NEXT" block listing only the real-world steps that are Jeff's (deploy clicks, pasting API keys into Vercel, DNS). Single voice by default — do NOT emit GPT/Grok bootstrap blocks; this project rejected multi-model deliberation on verified grounds. Trigger proactively when context is heavy; do not wait to be asked.
+description: End-of-session handoff for the Customer Model project — the business-school customer stress-test web app (customer-model.council.fyi). Trigger on "/ai-handoff", "/handoff", "handoff", "wrap up", "push and handoff", "session done", or proactively when context is heavy (30+ tool calls, the engine or UI changed, deploy state moved, a decision resolved, or scope-changing research verified). Updates docs/handoff.md IN PLACE in a terse fixed schema, evicts resolved detail to docs/history.md, commits and pushes with a SCOPED git add (never -A), and outputs ONE Claude bootstrap block plus a plain-language "FOR JEFF — DO THIS NEXT" block of his real-world steps (deploy, keys, DNS). Single voice — never emit GPT/Grok blocks. Always carries the save-button invariant — any results surface must ship a Save/Print of the live #result-printable region, and the verdict with its warnings can never be dropped from the saved copy. Trigger proactively; do not wait to be asked.
 ---
 
 # AI Handoff — Customer Model
@@ -39,6 +39,31 @@ Keep it terse. This doc is state, not narrative. Prose, not bullet salad.
 
 Everything that is now RESOLVED moves OUT of handoff.md and into
 docs/history.md (append, dated). Handoff.md stays small.
+
+**Reserved permanent NOTE:** one NOTES slot is the save-button invariant (see
+below). It is restated in every handoff and is NEVER evicted to history, even
+after the button ships — a shipped button can regress, so the rule outlives it.
+
+## Save-button invariant (do not violate; never drop from a handoff)
+
+Any results or output surface in this app MUST ship a save control per the
+save-button skill. The rule that matters: the saved copy contains exactly what
+the user saw — no always-visible warning, caveat, or weakness may be dropped on
+the way to paper.
+
+- Default to **Print of the live region**: wrap the result-only DOM as
+  `#result-printable`, add a "Save / Print" button beside the run/copy actions
+  that calls `window.print()`, and keep the `@media print` isolation block in
+  globals.css. Printing the live render makes omission impossible by
+  construction; never build a separate "clean" export that could drop honesty.
+- The **verdict is a must-show section** and MUST appear in the saved copy,
+  with its warnings: bleed-out, tipping point, segment loss, reputation rot,
+  exploitation cost. A revenue number without the verdict is the exact failure
+  this rule exists to prevent.
+- The Save/Print and Copy controls live OUTSIDE `#result-printable` (or carry
+  `.no-print`) so the chrome doesn't print, but the result does.
+- On any handoff, confirm this still holds in `src/app/page.tsx` +
+  globals.css. If it regressed, say so in NEXT MOVE; do not paper over it.
 
 ## Secrets discipline (do not violate)
 

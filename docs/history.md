@@ -40,3 +40,39 @@ customer is asymmetric). Multi-model deliberation verified as redundant among
 correlated models; bounded single-model is the default, with the deterministic
 engine serving as the independent verification channel. URL settled as a
 subdomain (a path on council.fyi would route through the council project).
+
+## 2026-06-17 — UI build + validation gate + repo init (resolved)
+
+Built `src/app/page.tsx` against the real engine API. Controls cover the full
+SimConfig; results recompute from the last-run config with a stale badge so the
+chart can't silently disagree with the sliders. Results surface wrapped as
+`#result-printable` with the verdict + warning chips first (must-show), then
+metrics, a hand-rolled two-panel SVG chart, per-archetype survival bars, and a
+sourced methodology note. Save/Print + Copy kept outside the printable region;
+`@media print` isolation added to globals.css with `print-color-adjust: exact`
+so the chart and bars survive on white while text is forced dark.
+
+Validation gate run and GREEN. Snags resolved along the way: (1) this machine's
+npm defaults to production installs, so dev deps (typescript, tailwind, types)
+were missing and `tsc` wasn't found — fixed with `npm install --include=dev`;
+(2) typecheck failed only on `smoke.ts` (imports `sim.ts` with a `.ts`
+extension) — excluded it in tsconfig per its scratch-file status; (3) `next
+build` then compiled clean, page prerenders static at 8.25 kB. Local git repo
+initialized on `main` with scoped adds (never -A); `.gitignore` extended to
+cover `next-env.d.ts` and `*.tsbuildinfo`. No remote yet.
+
+## 2026-06-17 — DNS question resolved + save-button baked into the skill
+
+DNS for the subdomain is no longer an open question. Checked Vercel directly:
+council.fyi is attached to the council project (prj_OpOXxeBjNpjWcykSfd9oegJPmuOF)
+on team_Lh2oOhJYVaJF4VhuRQPnyNa9, and an NS lookup shows council.fyi on
+ns1/ns2.vercel-dns.com — Vercel-managed DNS. So the subdomain is zero-touch:
+add it to the new Vercel project and Vercel provisions the record + cert. No
+registrar CNAME.
+
+The save-button invariant was promoted from a handoff NOTE into the ai-handoff
+skill itself (skills/ai-handoff/SKILL.md): a dedicated do-not-violate section, a
+reserved permanent NOTES slot in the schema, and a clause in the always-loaded
+description. Packaged via skill-creator to an installable `ai-handoff.skill`
+(description trimmed to fit the 1024-char cap). Repo copy and packaged copy are
+identical.

@@ -6,72 +6,70 @@ State doc. Terse by design. Resolved detail lives in docs/history.md.
 A business-school AI tool: a deterministic, game-theory + behavioral-economics
 simulation that stress-tests a business model against synthetic customer
 archetypes. Target URL: customer-model.council.fyi (its own repo + Vercel
-project, fully isolated from the council repo).
+project, isolated from the council repo).
 
 ## PHASE
-Engine built and verified. No UI, no install, no deploy yet.
+Engine + UI built and verified. Local repo committed. Not yet deployed.
 
 ## LAST COMMIT
-None — local repo not yet initialized (see DEPLOY STATE).
+SET_BY_COMMIT_STEP
 
 ## CURRENT STATE
-`src/lib/sim.ts` is the working engine: seven Axelrod-derived archetypes,
-prospect-theory perception (λ default 2.25), reference re-anchoring, a fading
-competitor raid, friction-gated churn, reputation that mean-reverts toward
-satisfaction minus negative word-of-mouth, reputation-driven acquisition, a
-tipping-point detector, and a deterministic plain-language `verdict()`. It runs
-on Node 26 via native TS. Verified: determinism passes (same seed → identical
-revenue); default scenario holds but wipes the grim-trigger segment on a price
-hike (~14% net churn, cascade at round 12); harsh preset collapses (~98%).
-Project scaffold (package.json, tsconfig, next.config, postcss, globals.css with
-council tokens, layout.tsx, .gitignore protecting .env*, .env.local.example,
-README) is in place. `smoke.ts` exists for engine testing.
+`src/lib/sim.ts` (engine) and `src/app/page.tsx` (UI) are both built. The page
+is a client component: left rail carries the full control set (market, the
+seven-archetype mix with live normalized shares, policy levers, behavioral
+params with λ default 2.25, scenario events) plus Default/Harsh presets, where
+Harsh mirrors smoke.ts. Results recompute from the last *run* config (a moved
+slider shows a "re-run" badge rather than silently desyncing the chart). The
+results region is wrapped `#result-printable` and leads with the deterministic
+verdict and its warning chips, then headline metrics, a hand-rolled two-panel
+SVG chart (active customers + event/tipping markers; reputation line + churn
+bars), per-archetype survival bars, and a sourced methodology note. Save/Print
+and Copy sit outside the printable region. Validation gate is GREEN: install,
+`tsc --noEmit`, and `next build` all pass; page prerenders static at 8.25 kB.
 
 ## NEXT MOVE
-Build `src/app/page.tsx`: the controls (market mix, policy levers, behavioral
-params, scenario events, seed, run) and the results surface (headline metrics +
-per-round chart + per-archetype survival + the verdict). The results surface
-MUST ship with a save button per the save-button skill — see NOTES.
+Stage the deploy. Create GitHub repo trzz333/customer-model and push `main`
+(the `gh` CLI is NOT installed on this machine — install it or Jeff creates the
+repo and adds the remote). Then create the Vercel project linked to that repo
+and add the domain customer-model.council.fyi in the new project — DNS is
+zero-touch (see DEPLOY STATE). Voice layer is still deferred (see OPEN QUESTIONS).
 
 ## DEPLOY STATE
-- Local repo initialized: NO (run `git init`, scoped adds only, never -A).
-- GitHub repo created: NO (suggest trzz333/customer-model).
-- Vercel project: NO.
-- Subdomain customer-model.council.fyi attached: NO. Blocker: confirm how
-  council.fyi DNS is managed (Vercel-managed → add domain in new project;
-  registrar → Jeff adds one CNAME).
-- Env vars set: NO. ANTHROPIC_API_KEY goes in Vercel env (Jeff pastes the value;
-  never in code/chat/git). Only needed once the optional voice layer is built.
-- Validation gate UNRUN: `npm install && npm run typecheck && npm run build`
-  has not been run. Do this before claiming the app builds.
+- Local repo: YES — initialized, scoped commits, branch `main`. No remote yet.
+- GitHub repo: NO. Blocker: `gh` not installed; needs creating + remote add + push.
+- Vercel project: NO. Account/team confirmed (team_Lh2oOhJYVaJF4VhuRQPnyNa9).
+- Subdomain customer-model.council.fyi: NO, but path is known and zero-touch.
+  council.fyi is attached to the council Vercel project and its nameservers are
+  ns1/ns2.vercel-dns.com (Vercel-managed DNS). Adding the subdomain to the new
+  Vercel project auto-provisions the record + cert. No registrar CNAME needed.
+- Env vars: NO. ANTHROPIC_API_KEY into Vercel env (Jeff pastes the value), only
+  once the optional voice layer ships.
 
 ## DECISIONS LOCKED
-Standalone project, not in the council repo (don't step on council claude).
-Deterministic engine is the differentiated core; frontier synthetic-customer
-tools are LLM survey-respondents and this is not that. Optional LLM "voice of
-the customer" is single-model narration grounded in the simulated numbers, not
-a committee — multi-agent deliberation among correlated models was verified to
-add redundancy, not accuracy. The deterministic engine is itself the independent
-check on AI hand-waving. λ defaults to 2.25 (Tversky-Kahneman), tunable.
+Standalone project, not in the council repo. Deterministic engine is the
+differentiated core; frontier synthetic-customer tools are LLM survey-respondents
+and this is not that. Optional LLM "voice of the customer" is single-model
+narration grounded in the numbers, not a committee (multi-agent verified
+redundant, not additive). λ defaults to 2.25 (Tversky-Kahneman), tunable. The
+save-button invariant is now baked into the ai-handoff skill itself, not just
+this doc: every handoff carries it forward.
 
 ## OPEN QUESTIONS
-council.fyi DNS management (the one external dependency for the subdomain).
-Whether the voice layer ships in v1 or after the deterministic UI is solid.
+Whether the LLM voice layer ships in v1 or after the deterministic app is live.
 
 ## NOTES
-1. SAVE BUTTON (Jeff asked for this explicitly): build per /save-button. Default
-   to Print — wrap the results-only region as `#result-printable`, add a
-   "Save / Print" button beside the run/copy actions calling `window.print()`,
-   and put the `@media print` isolation block in globals.css (mirror Council's
-   `#council-printable`). The verdict (with its warnings: bleed-out, tipping
-   point, segment loss, reputation rot, exploitation cost) is a must-show
-   section and MUST appear in the saved copy. Never build a separate "clean"
-   export that drops it. That is the one rule of the skill.
-2. Engine API: `runSimulation(cfg: SimConfig): SimResult`, `verdict(cfg, r)`,
-   `DEFAULT_CONFIG`, `ARCHETYPES`, `ARCH_BY_KEY`. All pure, client-safe.
-3. Chart: hand-roll SVG (no recharts dependency) to match council's house style.
-4. Add a short sourced "methodology" note in the app: Axelrod tournament,
-   Tversky-Kahneman λ (note meta-mean ~1.96, range ~1.5–3), why deterministic
-   over an LLM-persona committee.
-5. `smoke.ts` is a scratch test, not shipped — keep it out of the deployed build
-   (it imports sim.ts directly; fine to leave in repo root, gitignore if noisy).
+1. SAVE BUTTON — shipped in page.tsx (Save/Print over `#result-printable`,
+   `@media print` block in globals.css) and the verdict-with-warnings is the
+   must-show section in the saved copy. This is a permanent invariant, restated
+   every handoff and never evicted even though it now ships. Do not build a
+   separate "clean" export that drops the verdict.
+2. Engine API (unchanged): `runSimulation(cfg)`, `verdict(cfg, r)`,
+   `DEFAULT_CONFIG`, `ARCHETYPES`, `ARCH_BY_KEY`. Pure, client-safe.
+3. Build quirks for a fresh clone: this machine's npm installs production-only
+   by default, so dev deps were missing — use `npm install --include=dev`.
+   `smoke.ts` is excluded in tsconfig (it imports sim.ts with a .ts extension);
+   keep it excluded. `next-env.d.ts` and `*.tsbuildinfo` are gitignored.
+4. Chart is hand-rolled SVG (no recharts), council house style.
+5. Methodology note in-app cites Axelrod tournaments and Tversky-Kahneman λ
+   (meta-mean ~1.96, range ~1.5–3) and the deterministic-over-committee rationale.
