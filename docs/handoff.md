@@ -12,7 +12,8 @@ project, isolated from the council repo).
 Engine + UI built and verified. Local repo committed. Not yet deployed.
 
 ## LAST COMMIT
-SET_BY_COMMIT_STEP
+71d9ad1 — feat: bake save-button invariant into ai-handoff skill plus session handoff
+(preceded by 69798d1 — feat: results UI with save/print, deterministic engine wired)
 
 ## CURRENT STATE
 `src/lib/sim.ts` (engine) and `src/app/page.tsx` (UI) are both built. The page
