@@ -195,7 +195,23 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
 // same business fares. Reference-class forecasting (vary the world) and a
 // Kahneman noise band (vary the seed) fall out of the same cheap sweep —
 // the engine is deterministic and tiny, so this is just more runs.
-const REF_SEEDS = [12345, 222, 777, 4040, 90909, 31337, 56789];
+export const REF_SEEDS = [12345, 222, 777, 4040, 90909, 31337, 56789];
+
+// ── Difficulty (the instructor randomness knob; never a student "seed") ──
+// Randomness is exposed as a difficulty setting, the Capsim pattern: a calmer
+// market reads moves cleanly, a harsher one mis-reads more often, which both
+// hurts outcomes and widens the run-to-run band. It maps to the engine's
+// perception-noise term; the word "seed" never reaches the student surface.
+export type Difficulty = "calm" | "normal" | "harsh";
+export const DIFFICULTY_NOISE: Record<Difficulty, number> = { calm: 0.02, normal: 0.05, harsh: 0.12 };
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  calm: "Calm market", normal: "Normal", harsh: "Harsh market",
+};
+export const DIFFICULTY_NOTE: Record<Difficulty, string> = {
+  calm: "Customers read your moves clearly. Outcomes are steadier.",
+  normal: "A realistic amount of misreading and noise.",
+  harsh: "Customers misjudge more often. Worse, and more luck-dependent.",
+};
 
 export interface RefBand {
   lo: number; mid: number; hi: number;        // keep% across the reference class
@@ -228,6 +244,55 @@ export function placeInBand(keep: number, band: RefBand): string {
   if (frac >= 0.75) return "near the best this business does with any crowd";
   if (frac <= 0.25) return "near the worst this business does with any crowd";
   return "middle of the pack for this business";
+}
+
+// ── Per-world Monte-Carlo sweep (the headline is a band, not a point) ──
+// Run ONE business against ONE customer world across the fixed seed set, so
+// the card headline can be "usually about 84, between 78 and 90" instead of a
+// single fragile number. The median-seed run is returned as the representative
+// roll so the chart, the causal story, and the numbers all match the headline.
+// The seed set is fixed and internal; difficulty (noise) is what the instructor
+// turns, and a harsher market naturally widens the spread. Engine untouched.
+export interface SeedRun { seed: number; cfg: SimConfig; r: SimResult; keep: number }
+export interface WorldSweep {
+  world: CustomerWorld;
+  runs: SeedRun[];          // one per seed, sorted by keep ascending
+  median: SeedRun;          // the representative roll (median keep)
+  lo: number; mid: number; hi: number;
+}
+
+export function sweepWorld(biz: BizInput, world: CustomerWorld, adv?: AdvOverride): WorldSweep {
+  const runs: SeedRun[] = REF_SEEDS.map((seed) => {
+    const cfg = businessToCfg(biz, world, { ...adv, seed });
+    const r = runSimulation(cfg);
+    return { seed, cfg, r, keep: Math.round((r.endingActive / r.startingActive) * 100) };
+  });
+  runs.sort((a, b) => a.keep - b.keep);
+  const median = runs[Math.floor(runs.length / 2)];
+  return { world, runs, median, lo: runs[0].keep, mid: median.keep, hi: runs[runs.length - 1].keep };
+}
+
+// The band, said in plain words. Leads with "out of 100", names the typical
+// outcome and the luck range, and only states a range when it's wide enough to
+// matter. Tone tracks the typical (median) outcome, not a single lucky roll.
+export function bandPhrase(world: CustomerWorld, s: WorldSweep): { tone: Layman["tone"]; text: string } {
+  const { mid, lo, hi } = s;
+  const churn = 100 - mid;
+  const grow = mid >= 100;
+  let tone: Layman["tone"];
+  if (grow || churn < 15) tone = "good";
+  else if (churn < 30) tone = "";
+  else if (churn < 55) tone = "warn";
+  else tone = "bad";
+  const wide = hi - lo > 4;
+  const range = wide ? ` Across many runs it lands between ${lo} and ${hi}.` : "";
+  let lead: string;
+  if (grow) lead = `Grows. Start with 100 ${world.noun} and you usually end with about ${mid} — word of mouth more than replaces who leaves.`;
+  else if (churn < 15) lead = `Holds. Out of every 100 ${world.noun}, you usually keep about ${mid}.`;
+  else if (churn < 30) lead = `Mostly holds. About ${mid} of every 100 ${world.noun} stay, the rest drift off.`;
+  else if (churn < 55) lead = `Erodes. You usually end with about ${mid} of every 100 ${world.noun}; the rest leave.`;
+  else lead = `Walks out. Only about ${mid} of every 100 ${world.noun} are still with you at the end.`;
+  return { tone, text: lead + range };
 }
 
 // ── Fermi / lifetime-value sanity read on the existing result ────────

@@ -50,6 +50,10 @@ input[type="range"] { accent-color: var(--color-primary); }
    that could drop them. */
 @media print {
   nav, .no-print { display: none !important; }
+  /* Selective export: deselected sections drop from the printed copy. The
+     verdict + warning chips carry no .export-hidden class and no toggle, so
+     they can never be dropped — the save-button invariant, by construction. */
+  .export-hidden { display: none !important; }
   html, body { background: #fff !important; }
   body * { visibility: hidden; }
 
