@@ -13,7 +13,7 @@ the engine's raw parameters, so it is not yet usable by a non-expert and offers
 no plain-language place to describe the business itself.
 
 ## LAST COMMIT
-LASTCOMMIT_PLACEHOLDER
+15611fc — docs: handoff after deploy; next move is plain-language input layer
 
 ## CURRENT STATE
 `src/lib/sim.ts` (engine) and `src/app/page.tsx` (UI) are built, verified, and
