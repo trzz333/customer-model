@@ -76,3 +76,24 @@ reserved permanent NOTES slot in the schema, and a clause in the always-loaded
 description. Packaged via skill-creator to an installable `ai-handoff.skill`
 (description trimmed to fit the 1024-char cap). Repo copy and packaged copy are
 identical.
+
+
+## 2026-06-17 — Deployed live; next is a plain-language input layer
+
+Shipped the deploy end to end. Created GitHub repo trzz333/customer-model
+(private, empty) in the browser, added the origin remote and pushed `main`; GCM
+had a cached credential so no auth prompt was needed. Imported the repo into
+Vercel under team_Lh2oOhJYVaJF4VhuRQPnyNa9 (verified that is the same team
+holding the council project prj_OpOXxeBjNpjWcykSfd9oegJPmuOF and the council.fyi
+domain before deploying), Next.js auto-detected, root ./, no env vars. Build
+went green and the page prerenders static. Attached customer-model.council.fyi
+to Production; it provisioned zero-touch via Vercel-managed DNS and shows Valid
+Configuration. Confirmed the live site serves over HTTPS with the verdict,
+warning chips, metric grid, SVG chart, and Save/Print all intact.
+
+Jeff then named the real v1 gap: the UI is engine-direct and unreadable to a
+non-expert, and there is no place to input the business model. Both are the same
+problem. The inputs map straight to engine knobs (archetype shares, λ, policy
+levers), so no business-language surface exists. Next session builds that front
+door (plain terms in, engine cfg out) and demotes the raw params to an advanced
+view. Engine stays frozen; this is UI-only.
