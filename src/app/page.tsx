@@ -433,7 +433,7 @@ const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Di
 const DEFAULT_FIN: FinanceInput = { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
 const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: true, finance: true, fragility: true, methodology: true };
 
-type View = "class" | "instructor";
+type View = "student" | "teaching" | "deep";
 type Emphasis = "behavioral" | "finance";
 type ExportSel = typeof DEFAULT_EXPORT;
 interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; fragility: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
@@ -450,11 +450,12 @@ export default function Page() {
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [loadedEngine, setLoadedEngine] = useState<string | null>(null);
-  const [view, setView] = useState<View>("class");
+  const [view, setView] = useState<View>("teaching");
   const [emphasis, setEmphasis] = useState<Emphasis>("behavioral");
   const [exp, setExp] = useState<ExportSel>(DEFAULT_EXPORT);
-  const instructor = view === "instructor";
-  const financeLed = instructor && emphasis === "finance";
+  const deep = view === "deep";                            // behavioral-econ veteran: λ + cited methodology
+  const hasControls = view === "teaching" || view === "deep";  // any professor mode: dials + finance + export
+  const financeLed = hasControls && emphasis === "finance";
 
   const derived = useMemo(() => {
     const advEng = { rounds: ran.adv.rounds, lossAversion: ran.adv.lossAversion, noise: DIFFICULTY_NOISE[ran.adv.difficulty] };
@@ -502,6 +503,7 @@ export default function Page() {
     const { biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f } = decoded.state;
     setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
     setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
+    setView("student");   // a shared link is a finished artifact; open it in the clean read, not the configurer's controls
     if (decoded.engineVersion !== ENGINE_VERSION) setLoadedEngine(decoded.engineVersion);
   }, []);
 
@@ -565,7 +567,6 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }
 
-  function selectView(v: View, e?: Emphasis) { setView(v); if (e) setEmphasis(e); }
   const seg = (active: boolean) => `px-3 py-1.5 text-sm rounded-md transition-colors ${active ? "bg-primary text-white" : "text-muted-fg hover:text-foreground"}`;
 
   return (
@@ -581,21 +582,31 @@ export default function Page() {
             </p>
           </div>
           <div className="no-print shrink-0 flex flex-col items-end gap-1.5">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card-muted p-1">
-              <button onClick={() => selectView("class")} className={seg(view === "class")}>Class</button>
-              <button onClick={() => selectView("instructor", "behavioral")} className={seg(instructor && emphasis === "behavioral")}>Instructor</button>
-              <button onClick={() => selectView("instructor", "finance")} className={seg(financeLed)}>Finance focus</button>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-card-border bg-card-muted p-1">
+                <button onClick={() => setView("student")} className={seg(view === "student")}>Student</button>
+                <button onClick={() => setView("teaching")} className={seg(view === "teaching")}>Teaching</button>
+                <button onClick={() => setView("deep")} className={seg(view === "deep")}>Deep dive</button>
+              </div>
+              {hasControls && (
+                <button onClick={() => setEmphasis((e) => (e === "finance" ? "behavioral" : "finance"))}
+                  className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${emphasis === "finance" ? "border-primary bg-primary/10 text-foreground" : "border-card-border bg-card-muted text-muted-fg hover:text-foreground"}`}>
+                  {emphasis === "finance" ? "✓ Finance focus" : "Finance focus"}
+                </button>
+              )}
             </div>
             <a href="/glossary" className="text-xs text-muted-fg hover:text-foreground underline decoration-dotted underline-offset-2">Glossary ↗</a>
           </div>
         </div>
         <p className="no-print text-xs text-muted-fg mt-2">
-          {view === "class"
-            ? "Class view: plain language, no dials. The result reads at a freshman level."
+          {view === "student"
+            ? "Student view: plain language, no dials. The result reads at a freshman level."
             : financeLed
-              ? "Finance focus: leads with the dollars; the behavioral-economics detail is tucked away, not gone."
-              : "Instructor view: the dials, the loss-aversion detail, finance, and what travels into a saved copy."}
-          {" "}Any mode is open to anyone — these are for ease of reading, not access control.
+              ? "Finance focus: leads with the dollars (LTV, payback, NPV); the behavioral read stays one click away."
+              : view === "teaching"
+                ? "Teaching mode: plain language with the full teaching controls. No behavioral-science background needed — every underlined term explains itself on hover."
+                : "Deep dive: adds the loss-aversion dial (λ) and the cited methodology on top of the teaching controls."}
+          {" "}Any mode is open to anyone — these set how much is shown, not who may see it.
         </p>
       </header>
 
@@ -687,7 +698,7 @@ export default function Page() {
             {stale ? "Run stress test →" : "Re-run"}
           </button>
 
-          {instructor && (
+          {hasControls && (
             <>
               <div className="mt-5 border-t border-card-border pt-3">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-fg mb-1.5">Difficulty</div>
@@ -702,12 +713,14 @@ export default function Page() {
                 <p className="text-xs text-muted-fg mt-1.5 leading-snug">{DIFFICULTY_NOTE[adv.difficulty]} This is the randomness knob; it also widens the run-to-run band.</p>
               </div>
 
-              <details className="mt-4 border-t border-card-border pt-3">
-                <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Advanced — engine parameters</summary>
-                <p className="text-xs text-muted-fg my-2"><Term def={DEF.lambda}>λ</Term> drives the outcome wherever your moves create a perceived loss; with no loss to weight, it does little. It&apos;s held constant across worlds as the shared science; what changes between worlds is who the customers are.</p>
-                <AdvSlider label="Rounds" value={adv.rounds} min={10} max={80} step={1} onChange={(v) => setAdv((a) => ({ ...a, rounds: Math.round(v) }))} />
-                <AdvSlider label="Loss aversion λ" value={adv.lossAversion} min={1} max={3.5} step={0.05} onChange={(v) => setAdv((a) => ({ ...a, lossAversion: v }))} format={(v) => v.toFixed(2)} />
-              </details>
+              {deep && (
+                <details className="mt-4 border-t border-card-border pt-3">
+                  <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Advanced — engine parameters</summary>
+                  <p className="text-xs text-muted-fg my-2"><Term def={DEF.lambda}>λ</Term> drives the outcome wherever your moves create a perceived loss; with no loss to weight, it does little. It&apos;s held constant across worlds as the shared science; what changes between worlds is who the customers are.</p>
+                  <AdvSlider label="Rounds" value={adv.rounds} min={10} max={80} step={1} onChange={(v) => setAdv((a) => ({ ...a, rounds: Math.round(v) }))} />
+                  <AdvSlider label="Loss aversion λ" value={adv.lossAversion} min={1} max={3.5} step={0.05} onChange={(v) => setAdv((a) => ({ ...a, lossAversion: v }))} format={(v) => v.toFixed(2)} />
+                </details>
+              )}
 
               <details className="mt-3 border-t border-card-border pt-3" open={financeLed}>
                 <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Finance — optional unit economics</summary>
@@ -735,7 +748,7 @@ export default function Page() {
               )}
               {stale && <span className="text-xs text-warn ml-1">Inputs changed — re-run to update.</span>}
             </div>
-            {instructor && (
+            {hasControls && (
               <div className="mt-2 rounded-lg border border-card-border bg-card-muted p-3">
                 <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-fg mb-1.5">Saved copy includes</div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -760,8 +773,10 @@ export default function Page() {
           <div id="result-printable">
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
               <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
-              {instructor ? (
+              {deep ? (
                 <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · {DIFFICULTY_LABEL[ran.adv.difficulty]} · engine {ENGINE_VERSION}</span>
+              ) : view === "teaching" ? (
+                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · {DIFFICULTY_LABEL[ran.adv.difficulty]} · engine {ENGINE_VERSION}</span>
               ) : (
                 <span className="text-sm text-muted-fg">Tested across {derived.sweeps.length} customer world{derived.sweeps.length === 1 ? "" : "s"} over {ran.adv.rounds} rounds</span>
               )}
@@ -810,7 +825,7 @@ export default function Page() {
               </div>
             )}
 
-            {instructor && ran.fin.launchPrice > 0 && derived.sweeps.length > 0 && (
+            {hasControls && ran.fin.launchPrice > 0 && derived.sweeps.length > 0 && (
               <details className={`numbers mb-4 rounded-xl border border-card-border bg-card p-5 ${exp.finance ? "" : "export-hidden"}`} open={financeLed}>
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-fg">Finance — unit economics in dollars</summary>
                 <p className="text-xs text-muted-fg mt-2 mb-3 leading-relaxed">
@@ -853,7 +868,7 @@ export default function Page() {
               </details>
             )}
 
-            {view === "class" ? (
+            {!deep ? (
               <div className={`rounded-xl border border-card-border bg-card-muted p-5 text-sm text-muted-fg leading-relaxed ${exp.methodology ? "" : "export-hidden"}`}>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">How to read this</h3>
                 <p className="mb-2">Each customer world is a different mix of people, from loyal regulars to deal-chasers. The engine plays your four moves out over many rounds and counts who stays and who leaves. It leans on two everyday facts about people: <Term def={DEF.loss}>loss aversion</Term> (a price rise or a quality drop stings more than an equal-size improvement pleases) and <Term def={DEF.present}>present bias</Term> (a discount right now is tempting even when staying would be smarter).</p>
