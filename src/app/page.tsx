@@ -25,6 +25,17 @@ import {
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
+// First sentence of a paste, collapsed to one line for the snapshot card.
+function snapshot(text: string): string {
+  const t = (text ?? "").trim().replace(/\s+/g, " ");
+  if (!t) return "";
+  const m = t.match(/^.*?[.!?](\s|$)/);
+  let s = m ? m[0].trim() : t;
+  if (s.length > 96) s = s.slice(0, 96).trimEnd() + "…";
+  else if (!m) s = s + "…";
+  return s;
+}
+
 interface Run { world: CustomerWorld; cfg: SimConfig; r: SimResult; lay: Layman }
 interface EventMark { round: number; label: string; color: string }
 
@@ -206,9 +217,16 @@ export default function Page() {
             className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm mb-2" />
           <input value={biz.sell} onChange={(e) => setField("sell", e.target.value)} placeholder="What you sell (e.g. a $12/mo note app)"
             className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm" />
-          <details className="mt-2 group">
-            <summary className="cursor-pointer text-xs text-muted-fg hover:text-foreground">
-              Paste a full business model (optional)
+          <details className="mt-2 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none">
+              {biz.model?.trim() ? (
+                <div className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 hover:border-primary transition-colors">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-light mb-0.5">Business model · click to view / edit</div>
+                  <div className="text-sm text-foreground truncate">{snapshot(biz.model)}</div>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-fg hover:text-foreground">+ Paste a full business model (optional)</span>
+              )}
             </summary>
             <textarea value={biz.model ?? ""} onChange={(e) => setField("model", e.target.value)}
               placeholder="Paste a detailed business model here — e.g. a worked-up idea from an AI. It travels with your write-up and saved copy. You still set the four moves below; that translation is the exercise."
