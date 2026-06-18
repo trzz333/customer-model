@@ -24,6 +24,18 @@ function makeRng(seed: number): () => number {
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
+// ── Reference-dependent perception constants ─────────────────────────
+// The customer judges each round against an adapting reference point. The
+// functional form follows the reference-dependent logit brand-choice model
+// of Hardie, Johnson & Fader (1993, Marketing Science), itself built on the
+// Tversky-Kahneman (1992) value function: a perceived loss is weighted by λ
+// relative to an equal-size gain, with diminishing sensitivity α, and a logit
+// turns perceived utility into a GRADED probability of reading the round as a
+// defection — so λ moves behaviour continuously, not just at a hard threshold.
+const PT_ALPHA = 0.88;   // diminishing sensitivity (TK 1992 median)
+const PERC_TOL = 22;     // tolerance: small perceived unfairness is shrugged off
+const PERC_TEMP = 7;     // logit sharpness of the cooperate/defect read
+
 // ── Archetypes ───────────────────────────────────────────────────────
 export type StratKey =
   | "reciprocal" | "forgiving" | "opportunist" | "inertial"
@@ -156,19 +168,31 @@ export function runSimulation(cfg: SimConfig): SimResult {
     for (const ag of agents) {
       if (ag.status === "churned") continue;
 
-      // 1. Perceive the business move, distorted by prospect theory.
-      const priceGap = price - ag.refPrice;
-      const valueGap = value - ag.refValue;
-      const priceTerm = priceGap > 0 ? -cfg.lossAversion * priceGap : -priceGap * 0.6;
-      const valueTerm = valueGap < 0 ? cfg.lossAversion * valueGap : valueGap * 0.6;
-      let fairness = valueTerm + priceTerm;
-      if (incidentNow) fairness -= 40;
-      // Deadband: only a real grievance flips a customer to "defect," not every minor gap.
-      let signal = fairness >= -15 ? 1 : -1;
+      // 1. Perceive the move through a reference-dependent value function.
+      //    Loss (price above reference, or value below it) is weighted by λ
+      //    versus an equal gain, with diminishing sensitivity α (TK 1992).
+      const priceLoss = Math.max(0, price - ag.refPrice);
+      const priceGain = Math.max(0, ag.refPrice - price);
+      const valueLoss = Math.max(0, ag.refValue - value);
+      const valueGain = Math.max(0, value - ag.refValue);
+      let utility =
+        (Math.pow(priceGain, PT_ALPHA) + Math.pow(valueGain, PT_ALPHA)) -
+        cfg.lossAversion * (Math.pow(priceLoss, PT_ALPHA) + Math.pow(valueLoss, PT_ALPHA));
+      if (incidentNow) utility -= cfg.lossAversion * 9; // a service failure reads as a loss
+      // Graded perception (logit): probability the customer reads this round as a
+      // defection rises smoothly as utility goes negative, so λ bites continuously.
+      const pDefect = 1 / (1 + Math.exp((utility + PERC_TOL) / PERC_TEMP));
+      let signal = rng() < pDefect ? -1 : 1;
       if (rng() < cfg.noise) signal = -signal;
       ag.prevBizSignal = ag.lastBizSignal;
       ag.lastBizSignal = signal;
-      ag.dissatisfaction = signal < 0 ? ag.dissatisfaction + 1 : Math.max(0, ag.dissatisfaction - 0.9);
+      // Grievance MAGNITUDE (λ-scaled) gives each defect round a heavier leave
+      // chance when the loss is bigger; dissatisfaction itself accumulates plainly
+      // so it can't run away to a wipeout.
+      const grievance = Math.max(0, -utility);
+      ag.dissatisfaction = signal < 0
+        ? ag.dissatisfaction + 1
+        : Math.max(0, ag.dissatisfaction - 0.9);
 
       // 2. Strategy chooses intended action from the perceived signal.
       let intent: Action = "cooperate";
@@ -210,7 +234,7 @@ export function runSimulation(cfg: SimConfig): SimResult {
       let action: Action = intent;
       if (intent === "defect") {
         const leaveProb = clamp(0.03 + Math.min(ag.dissatisfaction, 8) * 0.045 + (lure > 0 ? 0.08 : 0)
-          - frictionDampen * 0.55, 0.01, 0.85);
+          + Math.min(grievance / 35, 0.18) - frictionDampen * 0.55, 0.01, 0.85);
         if (rng() < leaveProb) action = "churned";
       }
 

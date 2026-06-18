@@ -203,3 +203,45 @@ open question because it trades against freshman cognitive ease.
 Evicted from handoff this date: the Vercel jeff@local block saga (resolved —
 author email fixed globally), the prior A/B-vs-autofill open question (autofill
 deferred; paste is context, not parse), and the standalone HTML prototype note.
+
+
+## 2026-06-18 — Engine unfrozen for load-bearing λ; finance; honesty pass
+
+Resolved/evicted from handoff this date:
+
+- OPEN QUESTION "economic depth" → RESOLVED: finance layer shipped as an opt-in
+  collapsed block (launch price, gross margin, CAC, per-round discount) feeding a
+  collapsed per-world dollar read (revenue, contribution, NPV, LTV:CAC, payback).
+  Off until a price is entered, so the freshman path stays unit-free. Reads
+  engine `rounds[].revenue`. NPV calendar-mapping deferred to v2.
+
+- DECISION CHANGED: the engine was previously "FROZEN" as a hard rule. Jeff
+  lifted that this date to get meaningful math. The freeze was a self-imposed
+  discipline (don't churn the differentiated core), not a technical constraint.
+  New posture: disciplined but not sealed; engine edits allowed when the math
+  demands and are sweep-verified. Re-frozen on the new perception core.
+
+- ENGINE REWORK detail: the old core computed a fairness score (λ-scaled price
+  and value gaps) then collapsed it to a binary signal at a hard deadband (−15),
+  which discarded λ's magnitude past the threshold — so λ was inert in saturated
+  builds (the embedded-reviewer's "λ is decorative" finding, correct). Replaced
+  with a reference-dependent value function (TK 1992: losses ×λ, gains and losses
+  raised to α=0.88) → logit defect probability (PERC_TOL=22, PERC_TEMP=7) →
+  unchanged strategy intent → friction gate, plus a per-round λ-scaled grievance
+  term in the leave probability. Form follows Hardie-Johnson-Fader (1993, Mktg
+  Sci) reference-dependent logit brand choice. Calibration was tuned by a node
+  λ-sweep harness over five worlds × two-to-four scenarios; landed where λ
+  1.0→3.5 swings the headline 15–24 pts on builds with headroom, monotonic,
+  while the maximal-catastrophe build (raiseB/thin/none/hard) correctly floors.
+
+- HONESTY PASS (from the faculty/embedded audit): headline relabeled "keep X of
+  100" → "end with X per 100 started" everywhere (fixes >100% incoherence +
+  discloses population rescaling); teaching-prompt λ now reads live from the
+  slider (was hardcoded "twice as heavy"); methodology rewritten to cite HJF/TK,
+  name λ as load-bearing, explain the noise knob and per-100 rescaling, and stop
+  calling the Axelrod names an iterated game; competitor-pull prose no longer
+  calls non-impulsive worlds "steadier". Rejected from the audit: "make λ
+  load-bearing by editing the engine" was the right diagnosis with a fix we then
+  actually did this session; "there is no finance block" was stale (pre-deploy).
+
+- docs/plan.md created as the running roadmap + v2 parking lot + decision log.

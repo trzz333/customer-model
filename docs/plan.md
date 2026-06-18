@@ -6,24 +6,36 @@ between sessions. Decisions locked in `handoff.md` are not relitigated here.
 
 ## NORTH STAR
 A deterministic, reproducible, auditable customer stress-test for business
-school. The engine is the differentiated core and is frozen. Everything new is a
-cfg manipulation or a result read on top of it, or plain-language framing around
-it. Honesty about what the toy does and does not model is itself the pedagogy:
-it is the check on AI hand-waving, so it cannot hand-wave about itself.
+school. The engine is the differentiated core. It is kept disciplined (not
+churned casually), but it is NOT permanently sealed: it was unfrozen this session
+to make λ load-bearing, with a real rationale and numerical verification. New
+work is usually a cfg manipulation or a result read on top of it, or plain-
+language framing around it; engine edits happen when the math demands it and are
+verified by a sweep, not by eye. Honesty about what the model does and does not
+capture is itself the pedagogy: it is the check on AI hand-waving, so it cannot
+hand-wave about itself.
 
 ## NOW (v1 close-out)
 - [ ] Two-business A/B side-by-side compare, worst-case inversion finder folded
       in (hold the world fixed, sweep the small lever space — same primitive as
-      referenceBand). Engine frozen; UI + extra cfg. This is the next build.
+      referenceBand). UI + extra cfg on the current engine. This is the next build.
 - [ ] Shareable seeded run-link: encode inputs + seed in the URL for assignments
       and grading. Pairs with A/B.
 - [ ] Glossary + per-round CSV export (cheap, faculty-requested).
 
 ## DONE (recent, newest first)
+- ENGINE UNFROZEN and reworked to make λ load-bearing. Replaced the hard
+  fairness deadband (which discarded λ's magnitude past a threshold) with a
+  reference-dependent value function (TK 1992, diminishing sensitivity α=0.88,
+  losses ×λ) feeding a logit defect probability — the Hardie-Johnson-Fader
+  (1993) reference-dependent choice model. Verified by a λ sweep: on builds with
+  headroom, λ 1.0→3.5 swings the headline 15–24 points, monotonic; only the
+  maximal-catastrophe build floors (correctly). λ default 2.25, still held
+  constant across worlds. Engine treated as re-frozen on this new core.
 - Finance layer shipped: opt-in collapsed input (launch price, margin, CAC,
   per-round discount) in the rail; collapsed per-world dollar read (revenue,
   contribution, NPV, LTV:CAC, payback) at the foot of results, class `numbers`
-  so Save/Print force-opens it. Reads engine `rounds[].revenue`; sim.ts untouched.
+  so Save/Print force-opens it. Reads engine `rounds[].revenue`.
 - Honesty pass after the faculty/embedded audits (see DECISIONS below).
 
 ## V2 PARKING LOT (musings preserved, not commitments)
@@ -62,12 +74,12 @@ it is the check on AI hand-waving, so it cannot hand-wave about itself.
    tighter rules pass or the single-model narration layer reading the actual
    per-segment series. Keep it grounded in numbers; never a committee.
 
-4. λ legibility. λ is a calibrated constant and is intentionally second-order to
-   the categorical moves; that is the design (a business is judged on its moves).
-   The faculty critique that "λ barely moves results" is partly an artifact of
-   testing only saturated stress builds where the deadband is pinned. If a future
-   version wants λ more central, that is an engine change with a real rationale,
-   not a prose tweak. Until then, frame λ as the shared constant, not the driver.
+4. λ legibility — RESOLVED this session. λ is now load-bearing via the
+   reference-dependent logit (HJF 1993); moving it visibly moves the verdicts on
+   any build with headroom. Held constant across worlds as the shared science.
+   The earlier "λ is decorative" critique is answered. Remaining nuance: extreme
+   catastrophe builds saturate at the floor where nothing moves them, which is
+   correct, not a defect.
 
 5. Finance depth. NPV currently discounts per *round*; rounds have no calendar.
    v2: let the instructor map rounds→months/years so the discount rate is a real
