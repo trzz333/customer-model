@@ -25,6 +25,8 @@ import {
   DIFFICULTY_NOISE,
   DIFFICULTY_LABEL,
   DIFFICULTY_NOTE,
+  encodeRunLink,
+  decodeRunLink,
   type Difficulty,
   type BizInput,
   type CustomerWorld,
@@ -337,6 +339,8 @@ export default function Page() {
   const [fin, setFin] = useState<FinanceInput>(DEFAULT_FIN);
   const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [loadedEngine, setLoadedEngine] = useState<string | null>(null);
   const [view, setView] = useState<View>("class");
   const [emphasis, setEmphasis] = useState<Emphasis>("behavioral");
   const [exp, setExp] = useState<ExportSel>(DEFAULT_EXPORT);
@@ -369,7 +373,33 @@ export default function Page() {
   const stale = JSON.stringify({ biz, selected, adv, fin }) !== JSON.stringify(ran);
   const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
   const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
-  function run() { setRan({ biz, selected, adv, fin }); }
+  function run() { setRan({ biz, selected, adv, fin }); setLoadedEngine(null); }
+
+  // Load a shared run-link on first mount: decode ?r and apply it to the inputs
+  // AND to `ran`, so the identical result renders immediately. The link re-runs
+  // the frozen engine, so verdict + warnings regenerate from the numbers — they
+  // can't be lost in transit. If the link was authored on a different engine,
+  // surface the mismatch rather than passing a different result off as the same.
+  // A malformed token is ignored. Runs once.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = new URLSearchParams(window.location.search).get("r");
+    if (!token) return;
+    const decoded = decodeRunLink(token);
+    if (!decoded) return;
+    const { biz: b, selected: s, adv: a, fin: f } = decoded.state;
+    setBiz(b); setSelected(s); setAdv(a); setFin(f);
+    setRan({ biz: b, selected: s, adv: a, fin: f });
+    if (decoded.engineVersion !== ENGINE_VERSION) setLoadedEngine(decoded.engineVersion);
+  }, []);
+
+  // Copy a link that reproduces the DISPLAYED run (ran), not the live inputs.
+  function copyRunLink() {
+    if (typeof window === "undefined") return;
+    const token = encodeRunLink(ran);
+    const url = `${window.location.origin}${window.location.pathname}?r=${token}`;
+    navigator.clipboard?.writeText(url).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); });
+  }
 
   // Save/Copy both read the LIVE printable region. Deselected export sections
   // are display:none'd (so innerText skips them) and collapsed numbers blocks
@@ -528,6 +558,8 @@ export default function Page() {
               <button onClick={printAll} title="Save or print this. The saved copy keeps every verdict and warning shown here."
                 className="rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 transition-colors">Save / Print</button>
               <button onClick={copyWriteup} className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">{copied ? "Copied" : "Copy writeup"}</button>
+              <button onClick={copyRunLink} title="Copy a link that reproduces this exact run against the same engine version — the graded answer-key primitive."
+                className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">{linkCopied ? "Link copied" : "Copy link"}</button>
               {stale && <span className="text-xs text-warn ml-1">Inputs changed — re-run to update.</span>}
             </div>
             {instructor && (
@@ -545,6 +577,12 @@ export default function Page() {
               </div>
             )}
           </div>
+
+          {loadedEngine && (
+            <div className="no-print mb-4 rounded-lg border border-warn/50 bg-warn/10 px-4 py-2.5 text-xs leading-relaxed text-warn">
+              <b>Engine mismatch.</b> This link was created on engine {loadedEngine}; you&apos;re running {ENGINE_VERSION}. The result below is computed on {ENGINE_VERSION} and may differ from the original. Re-run to dismiss.
+            </div>
+          )}
 
           <div id="result-printable">
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">

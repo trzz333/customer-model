@@ -9,6 +9,7 @@
 import {
   DEFAULT_CONFIG,
   ARCHETYPES,
+  ENGINE_VERSION,
   runSimulation,
   type SimConfig,
   type SimResult,
@@ -371,4 +372,129 @@ export function financeRead(cfg: SimConfig, r: SimResult, fin: FinanceInput): Fi
   const ltvCac = fin.cac > 0 ? npvPerStart / fin.cac : null;
 
   return { on, grossPerStart, contribPerStart, npvPerStart, promoLeak, ltvCac, paybackRound };
+}
+
+// ── Shareable seeded run-link (the grading / answer-key primitive) ───
+// Encode a whole displayed run — business levers, the chosen customer
+// worlds, difficulty, λ, rounds, and the optional finance inputs — into a
+// URL-safe token, stamped with ENGINE_VERSION. Opening the link re-runs the
+// frozen engine on those inputs, so a graded result reproduces exactly
+// against a KNOWN engine; if the reader's engine differs, the version stamp
+// surfaces the mismatch instead of silently returning a different answer.
+// No raw seed travels: the headline band comes from the fixed internal
+// REF_SEEDS, which the engine version pins. Pure and client-safe.
+export interface RunLinkState {
+  biz: BizInput;
+  selected: Record<string, boolean>;
+  adv: { rounds: number; lossAversion: number; difficulty: Difficulty };
+  fin: FinanceInput;
+}
+export interface DecodedRunLink {
+  state: RunLinkState;
+  engineVersion: string;   // the engine the link was authored against
+  linkVersion: number;     // token schema version
+}
+
+const LINK_SCHEMA = 1;
+const PRICES: PriceMove[] = ["cut", "hold", "raiseS", "raiseB"];
+const VALUES: ValuePosture[] = ["premium", "par", "thin"];
+const RETENTIONS: Retention[] = ["none", "loyalty", "lockin", "promo"];
+const THREATS: Threat[] = ["none", "mild", "hard"];
+const DIFFS: Difficulty[] = ["calm", "normal", "harsh"];
+
+// UTF-8 ⇄ base64url, chunked so a long pasted business model can't blow the
+// call stack. Standard browser primitives; no dependency.
+function bytesToB64url(bytes: Uint8Array): string {
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64urlToBytes(token: string): Uint8Array {
+  const b64 = token.replace(/-/g, "+").replace(/_/g, "/") +
+    "=".repeat((4 - (token.length % 4)) % 4);
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+export function encodeRunLink(s: RunLinkState): string {
+  const payload = {
+    v: LINK_SCHEMA,
+    e: ENGINE_VERSION,
+    b: {
+      n: s.biz.name, s: s.biz.sell, m: s.biz.model?.trim() || undefined,
+      p: s.biz.price, q: s.biz.value, r: s.biz.retention, t: s.biz.threat,
+    },
+    w: WORLDS.filter((w) => s.selected[w.key]).map((w) => w.key),
+    a: { r: s.adv.rounds, l: s.adv.lossAversion, d: s.adv.difficulty },
+    f: s.fin.launchPrice > 0
+      ? { lp: s.fin.launchPrice, mp: s.fin.marginPct, c: s.fin.cac, dp: s.fin.discountPct }
+      : undefined,
+  };
+  return bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
+}
+
+export function decodeRunLink(token: string): DecodedRunLink | null {
+  try {
+    const raw = JSON.parse(new TextDecoder().decode(b64urlToBytes(token)));
+    if (!raw || typeof raw !== "object") return null;
+    const pick = <T,>(allowed: readonly T[], v: unknown, fb: T): T =>
+      (allowed as readonly unknown[]).includes(v) ? (v as T) : fb;
+    const b = (raw.b ?? {}) as Record<string, unknown>;
+
+    const biz: BizInput = {
+      name: typeof b.n === "string" ? b.n : "",
+      sell: typeof b.s === "string" ? b.s : "",
+      model: typeof b.m === "string" ? b.m : undefined,
+      price: pick(PRICES, b.p, "hold"),
+      value: pick(VALUES, b.q, "par"),
+      retention: pick(RETENTIONS, b.r, "none"),
+      threat: pick(THREATS, b.t, "none"),
+    };
+
+    const wkeys = new Set(WORLDS.map((w) => w.key));
+    const selected: Record<string, boolean> = {};
+    if (Array.isArray(raw.w)) {
+      for (const k of raw.w) if (typeof k === "string" && wkeys.has(k)) selected[k] = true;
+    } else {
+      selected.mainstream = true; selected.fickle = true; selected.loyal = true;
+    }
+
+    const a = (raw.a ?? {}) as Record<string, unknown>;
+    const adv = {
+      rounds: clampInt(a.r, 10, 80, 40),
+      lossAversion: clampNum(a.l, 1, 3.5, 2.25),
+      difficulty: pick(DIFFS, a.d, "normal" as Difficulty),
+    };
+
+    const f = (raw.f ?? null) as Record<string, unknown> | null;
+    const fin: FinanceInput = f
+      ? {
+          launchPrice: clampNum(f.lp, 0, 1e9, 0),
+          marginPct: clampNum(f.mp, 0, 100, 60),
+          cac: clampNum(f.c, 0, 1e9, 0),
+          discountPct: clampNum(f.dp, 0, 100, 1),
+        }
+      : { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
+
+    return {
+      state: { biz, selected, adv, fin },
+      engineVersion: typeof raw.e === "string" ? raw.e : "unknown",
+      linkVersion: typeof raw.v === "number" ? raw.v : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clampNum(v: unknown, lo: number, hi: number, fb: number): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fb;
+}
+function clampInt(v: unknown, lo: number, hi: number, fb: number): number {
+  return Math.round(clampNum(v, lo, hi, fb));
 }
