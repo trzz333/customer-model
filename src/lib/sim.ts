@@ -337,7 +337,7 @@ export function verdict(cfg: SimConfig, r: SimResult): string {
     .filter((x) => r.perArch[x.a.key].start > 0)
     .sort((x, y) => y.lost - x.lost)[0];
   if (worst && worst.lost > 0.5) {
-    parts.push(`The segment you lose hardest is the ${worst.a.name} (${Math.round(worst.lost * 100)}% gone) — tells you which lever to pull first.`);
+    parts.push(`The segment you lose hardest is the ${worst.a.name} (${Math.round(worst.lost * 100)}% gone).`);
   }
 
   return parts.join(" ");
