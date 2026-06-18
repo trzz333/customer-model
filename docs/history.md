@@ -365,3 +365,49 @@ single-lever fragility sweep — hold one world fixed, sweep A's small lever spa
 find the smallest single-lever change that flips the verdict. Built the
 cross-world inversion as the load-bearing pedagogical version; this adversarial
 lever-sweep variant is a clean next item, reuses the same sweep primitive.
+
+
+## 2026-06-18 — v1 close-out: faculty pair + fragility sweep (RESOLVED)
+
+Shipped the last three v1 surfaces on the frozen engine (sim.ts untouched all
+session); commits 4208bbc (faculty pair) and e0804c8 (fragility). typecheck
+clean, build green both times.
+
+**Glossary page (4208bbc).** New static route /glossary. The inline hover defs
+were lifted out of page.tsx into `TERM_DEFS` in business.ts as the single
+source; `GLOSSARY` (ordered, human-labelled) is derived from it so a definition
+is never written twice. The page also surfaces the five customer worlds and the
+seven archetypes (name + Axelrod label + tagline), since those are the real
+student-facing vocabulary and were already exported. Reached from a no-print
+"Glossary ↗" link in the header. Server component, prerendered (123 B).
+
+**Per-round CSV export (4208bbc).** "Download CSV" button (no-print chrome, next
+to Copy link, only rendered when sweeps exist). `runsToCsv(sweeps)` in
+business.ts flattens the median run of each swept world into one CSV with a
+leading `world` column and the full RoundMetric row (round, active,
+churned_this_round, exploiting, revenue_index, reputation, churn_rate) — chose
+the full row over the five named in the old handoff since a raw data dump costs
+nothing by being complete. Median run, so the rows reconcile with the chart.
+Carries no verdict text by design: it's raw data, a different artifact from the
+results surface the save invariant governs.
+
+**Within-world single-lever fragility sweep (e0804c8).** The deferred reading,
+now built. `fragilityScan(biz, world, adv)` + `fragilityPhrase(f)` in
+business.ts: hold one world fixed, change one of A's four moves at a time (each
+lever to its other allowed values, rest held), re-sweep via the existing
+sweepWorld, and find the "lightest" flip — the change whose new band-mid lands
+closest to the verdict-tone line it crosses, i.e. the smallest nudge that still
+tips the verdict. Robust = no single move flips it. Tone comes from bandPhrase
+so it matches the cards. Opt-in via an instructor-flavored sidebar toggle (off
+by default, so the default path isn't slowed by the extra ~10 sweeps/world);
+gated in derived on ran.fragility. FragilityBlock renders per chosen world
+inside #result-printable, export-toggleable (exp.fragility). Threaded through
+the run-link as additive field "fr" (backward-compatible: old tokens decode to
+false; LINK_SCHEMA stayed 1). Single-lever only by construction — combinations
+aren't counted, stated in the block's footnote.
+
+This closes the v1 build list. The only remaining v1 item is a decision, not a
+build: whether the single-model LLM voice ever ships, and as archetype narration
+vs business autofill. Also produced (outside the repo) a faculty-review prompt:
+a paste-into-fresh-Claude persona prompt that has a skeptical seasoned B-school
+faculty member exercise the live tool and return a blunt go/no-go.

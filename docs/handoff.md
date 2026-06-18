@@ -9,95 +9,89 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 close-out, in progress. Shipped this session on the frozen engine: the
-shareable seeded run-link, lz-string token compression, and the two-business
-A/B compare with a cross-world inversion finder. Remaining v1: the cheap
-faculty pair (glossary page + per-round CSV export), then optionally the
-within-world single-lever fragility sweep. Engine (sim.ts) untouched all session.
+v1 build complete. The whole v1 surface list is shipped on the frozen engine
+(sim.ts untouched all session). What remains for "v1 closed" is one decision,
+not a build: whether the optional single-model LLM voice ever ships. The
+faculty-review pass (skeptical seasoned B-school reviewer) is the natural gate
+on calling v1 done.
 
 ## LAST COMMIT
-4dc62b9 — v1 close-out: two-business A/B compare with cross-world inversion
-finder. (Preceded this session by a601e75 compression, e67f31a run-link.)
-typecheck clean, build green (21.3 kB).
+e0804c8 — v1: within-world single-lever fragility sweep. (Preceded this session
+by 4208bbc, the glossary page + per-round CSV export.) typecheck clean, build
+green (/ 23.2 kB, /glossary static 123 B).
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds; engine
-2.0.0 (untouched) is a seeded agent-based Monte Carlo, λ default 2.25. Three new
-v1 surfaces. (1) Run-link: a "Copy link" button encodes the displayed run
-(levers, chosen worlds, difficulty, λ, rounds, finance) into a URL stamped with
-ENGINE_VERSION; opening it re-runs the frozen engine, so a graded result
-reproduces and the verdict + warnings regenerate from the numbers rather than
-riding along as droppable text. A different engine version shows a mismatch
-banner instead of silently returning different numbers. (2) Tokens are
-compressed with lz-string (compressToEncodedURIComponent), marker "1"; a legacy
-base64url decode path remains. (3) A "Compare a second business" toggle adds an
-A-vs-B view: each chosen world is swept for both businesses, bands compared, and
-any world whose winner contradicts the overall winner is surfaced as a
-warning-class inversion callout ("overall A keeps more, but with the grudge crowd
-B wins"). CompareBlock + the inversion sit inside #result-printable with no
-export toggle, so they survive every saved copy. Save/Print, Copy writeup, and
-Copy link are no-print chrome.
+2.0.0 (untouched) is a seeded agent-based Monte Carlo, λ default 2.25, headline
+is a band. Surfaces now in place: per-world cards with verdict + warnings; the
+cross-world A/B compare with its inversion finder; the shareable seeded run-link
+(carries difficulty not a seed, stamped with ENGINE_VERSION, lz-string codec).
+New this session: (1) a standalone /glossary route — terms, customer worlds, and
+archetypes — fed by TERM_DEFS in business.ts, the single source the inline
+hovers also use, reached from a no-print header link. (2) a "Download CSV" button
+(no-print chrome) that dumps the median run's per-round engine rows for every
+swept world as one CSV with a world column. (3) a within-world fragility sweep:
+an opt-in instructor toggle that, per chosen world, reports the lightest single
+business-move change that flips the verdict band (or declares the business
+robust), rendered inside #result-printable, export-toggleable, and threaded
+through the run-link as additive field "fr".
 
 ## NEXT MOVE
-Finish v1 with the cheap faculty pair on the frozen engine: (1) a glossary page
-(the Term defs already in page.tsx, surfaced as a standalone reference) and
-(2) per-round CSV export (the engine's per-round rows: round, active, churned,
-reputation, revenue — one CSV per swept world or per displayed run). Then,
-optionally, the deferred within-world fragility sweep: hold one world fixed,
-sweep A's small lever space, report the smallest single-lever change that flips
-the verdict (reuses sweepWorld). The optional single-model LLM voice stays after
-v1 closes.
+Run the faculty-review prompt (a skeptical seasoned B-school faculty persona
+exercising the live tool) and triage its findings — that's the gate on declaring
+v1 closed. The prompt was generated this session; it lives in chat, not the repo.
+The only build-or-not fork left is the single-model LLM voice (archetype
+narration vs business autofill); it stays deferred until v1 is called closed.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
-- GitHub: YES, trzz333/customer-model (private), pushed this session (4dc62b9).
+- GitHub: YES, trzz333/customer-model (private), pushed this session (e0804c8).
 - Vercel: live at customer-model.council.fyi; this session's pushes auto-deploy.
-- Env vars: NO. v1 is key-free. New runtime dep: lz-string@1.5.0 (in
-  dependencies). @anthropic-ai/sdk is present for the post-v1 voice layer, unused.
+- Env vars: NO. v1 is key-free. @anthropic-ai/sdk present but unused (post-v1
+  voice). lz-string@1.5.0 is the one runtime dep added for the run-link.
 
 ## DECISIONS LOCKED
 Standalone repo, not council. Deterministic, reproducible, auditable core, not an
 LLM-respondent tool. Templates are CUSTOMER WORLDS applied to a user business. λ
 default 2.25, held constant across worlds. Engine evolves by versioned release;
 ENGINE_VERSION stamps every result. Optional LLM voice is single-model, after v1,
-never a committee. ALWAYS PUSH. NO machine learning ("Monte Carlo" = run many
-rolls, show the distribution). Two-mode UI (Class / Instructor; Finance is an
-emphasis within Instructor, not a tier; no gates). Randomness is a
-Calm/Normal/Harsh difficulty knob, never a student "seed." Headline is a band,
-not a point. λ and seed claims stay CONDITIONAL. New this session: (a) the
-run-link carries DIFFICULTY, not a raw seed — the band reproduces because
-REF_SEEDS is fixed in code and pinned by the engine version. (b) lz-string is the
-token codec; do not hand-roll compression. (c) the A/B inversion finder is the
-CROSS-WORLD one (reference-class: winner flips between crowds); the within-world
-single-lever fragility sweep is the deferred other reading, not a replacement.
+never a committee. ALWAYS PUSH. NO machine learning. Two-mode UI (Class /
+Instructor; Finance is an emphasis within Instructor, not a tier; no gates).
+Randomness is a Calm/Normal/Harsh difficulty knob, never a student "seed."
+Headline is a band, not a point. λ and seed claims stay CONDITIONAL. The run-link
+carries DIFFICULTY not a raw seed; lz-string is the token codec, do not hand-roll.
+The A/B inversion finder is the CROSS-WORLD one; the fragility sweep is the
+WITHIN-WORLD single-lever one — both now shipped, not alternatives. CSV is a raw
+data dump and carries no verdict text; that is correct, not a save-invariant gap.
 
 ## OPEN QUESTIONS
-1. LLM voice layer: still "after v1"; the only question is whether it ever ships,
-   and as archetype narration vs business autofill. Not urgent.
+1. LLM voice layer: still "after v1." The fork is whether it ships at all, and as
+   archetype narration vs business autofill (autofill would put an API key in the
+   loop for the first time). Not urgent; wait on the faculty review.
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
    #result-printable; verdict + warning chips must-show per card; details.numbers
    force-opened into both saved paths; selective export hides optional sections
    but verdict + warnings carry NO class and NO toggle, surviving every saved copy
-   by construction. CONFIRMED HOLDING this session: CompareBlock and the inversion
-   callout were added inside #result-printable with no export-hidden class, so the
-   A/B verdict and the inversion survive Save/Print and Copy. Copy-link is no-print
-   chrome. Never build a clean export that drops the verdict; never add a toggle
-   that can drop verdict/warnings/inversion.
-2. ALWAYS PUSH (standing, Jeff): push every code-changing session. Three pushes
-   this session.
+   by construction. CONFIRMED HOLDING this session: the new FragilityBlock was
+   added inside #result-printable as an optional (export-toggleable) section, not
+   a verdict/warning, so it cannot dilute the invariant; the glossary link and the
+   Download CSV button are no-print chrome; print CSS untouched. Never build a
+   clean export that drops the verdict; never add a toggle that can drop
+   verdict/warnings/inversion.
+2. ALWAYS PUSH (standing, Jeff): push every code-changing session. Two pushes this
+   session (4208bbc, e0804c8).
 3. BUILD QUIRK (load-bearing): a bare `npm install <pkg>` PRUNES devDependencies
-   (typescript included) and breaks the build. Always restore with
+   (typescript included) and breaks the build. Restore with
    `npm install --include=dev`. Validate sequence: cmd shell, npm run typecheck
    (NOT `npx tsc` — npx misresolves to a bogus tsc@2.0.4), npm run build,
    git add <scoped paths>, commit -F, push. typescript pinned 5.8.2.
-4. RUN-LINK URL BOUNDARY: lz-string keeps typical links tiny, but a pasted
-   novel-length business model can still exceed practical URL limits. The schema
-   is version-marked, so a stronger codec (e.g. a gzip CompressionStream variant)
-   can be added later without breaking existing links. Not worth solving for v1.
-5. ENGINE IS MONTE CARLO / REF_SEEDS FIXED (load-bearing for run-link + compare):
-   runSimulation seeds a mulberry32 RNG; the per-100 headline is one sample and a
-   different seed moves it ~5-8 pts even at noise 0, which is why the headline is a
-   band over the fixed internal REF_SEEDS. Both the run-link and the A/B sweep rely
-   on REF_SEEDS being constant in code and pinned by ENGINE_VERSION.
+4. TERM DEFS SINGLE SOURCE: the plain-language hover defs live ONCE, as TERM_DEFS
+   in business.ts; page.tsx aliases it (`const DEF = TERM_DEFS`) and GLOSSARY is
+   derived from it. Edit defs in one place; both the inline hovers and /glossary
+   update.
+5. FRAGILITY COST: the sweep runs ~10 single-lever variants × 7 seeds per chosen
+   world, so it is opt-in (off by default) and only computed when ran.fragility is
+   set. If it ever feels slow with all five worlds picked, that is why; it is not
+   on the default path.
