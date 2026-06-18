@@ -4,104 +4,26 @@ import { useMemo, useState } from "react";
 import {
   runSimulation,
   verdict,
-  DEFAULT_CONFIG,
   ARCHETYPES,
   type SimConfig,
   type SimResult,
-  type StratKey,
 } from "@/lib/sim";
-
-// Verified-harsh preset (mirrors smoke.ts: collapses ~98%).
-const HARSH_CONFIG: SimConfig = {
-  ...DEFAULT_CONFIG,
-  friction: 8,
-  hikeRound: 6,
-  hikeSize: 40,
-  incidentRound: 10,
-  competitorRound: 8,
-  competitorOffer: 60,
-  promoActive: true,
-};
+import {
+  FIELDS,
+  EXAMPLES,
+  WORLDS,
+  businessToCfg,
+  laymanAnalysis,
+  teachingPrompt,
+  type BizInput,
+  type CustomerWorld,
+  type Layman,
+} from "@/lib/business";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
-// ── Small control primitives ─────────────────────────────────────────
-function Slider(props: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  hint?: string;
-  format?: (v: number) => string;
-}) {
-  const { label, value, min, max, step, onChange, hint, format } = props;
-  return (
-    <label className="block mb-3">
-      <div className="flex items-baseline justify-between mb-1">
-        <span className="text-sm text-foreground">{label}</span>
-        <span className="text-sm font-medium text-primary-light tabular-nums">
-          {format ? format(value) : value}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full"
-      />
-      {hint ? <div className="text-xs text-muted-fg mt-1 leading-snug">{hint}</div> : null}
-    </label>
-  );
-}
-
-function Toggle(props: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
-  const { label, value, onChange, hint } = props;
-  return (
-    <label className="flex items-start gap-3 mb-3 cursor-pointer select-none">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={value}
-        onClick={() => onChange(!value)}
-        className={`mt-0.5 h-5 w-9 shrink-0 rounded-full transition-colors ${
-          value ? "bg-primary" : "bg-card-border"
-        }`}
-      >
-        <span
-          className={`block h-4 w-4 rounded-full bg-white transition-transform ${
-            value ? "translate-x-4" : "translate-x-0.5"
-          }`}
-        />
-      </button>
-      <span>
-        <span className="text-sm text-foreground">{label}</span>
-        {hint ? <span className="block text-xs text-muted-fg leading-snug">{hint}</span> : null}
-      </span>
-    </label>
-  );
-}
-
-function Section(props: { title: string; sub?: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-6">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-1">{props.title}</h3>
-      {props.sub ? <p className="text-xs text-muted-fg mb-3">{props.sub}</p> : null}
-      <div className="mt-2">{props.children}</div>
-    </div>
-  );
-}
-
-// ── Hand-rolled SVG chart (no recharts) ──────────────────────────────
-interface EventMark {
-  round: number;
-  label: string;
-  color: string;
-}
+interface Run { world: CustomerWorld; cfg: SimConfig; r: SimResult; lay: Layman }
+interface EventMark { round: number; label: string; color: string }
 
 function buildEvents(cfg: SimConfig): EventMark[] {
   const ev: EventMark[] = [];
@@ -111,347 +33,302 @@ function buildEvents(cfg: SimConfig): EventMark[] {
   return ev;
 }
 
+// ── Hand-rolled SVG chart (no recharts), compact two-panel ───────────
 function SimChart({ result, events }: { result: SimResult; events: EventMark[] }) {
   const rounds = result.rounds;
   const n = rounds.length;
   if (n === 0) return null;
-
-  // Geometry
-  const W = 720, padL = 44, padR = 14, plotW = W - padL - padR;
-  const hA = 168, hB = 120, gap = 26, axisH = 18;
-  const totalH = hA + gap + hB + axisH;
-
+  const W = 720, padL = 40, padR = 12, plotW = W - padL - padR;
+  const hA = 140, hB = 92, gap = 22, axisH = 16, totalH = hA + gap + hB + axisH;
   const lastR = n - 1;
   const x = (i: number) => padL + (n === 1 ? 0 : (i / lastR) * plotW);
-
   const maxActive = Math.max(result.startingActive, ...rounds.map((r) => r.active)) || 1;
   const yA = (v: number) => 8 + (hA - 16) * (1 - v / maxActive);
-
-  const repTop = 160;
   const yB0 = hA + gap;
-  const yB = (v: number) => yB0 + 6 + (hB - 12) * (1 - v / repTop);
-
+  const yB = (v: number) => yB0 + 6 + (hB - 12) * (1 - v / 160);
   const maxChurn = Math.max(1, ...rounds.map((r) => r.churnedThisRound));
   const barW = Math.max(1, plotW / n - 1);
-
-  const activeLine = rounds.map((r, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${yA(r.active).toFixed(1)}`).join(" ");
-  const activeArea =
-    `M${x(0).toFixed(1)},${yA(rounds[0].active).toFixed(1)} ` +
+  const line = rounds.map((r, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${yA(r.active).toFixed(1)}`).join(" ");
+  const area = `M${x(0).toFixed(1)},${yA(rounds[0].active).toFixed(1)} ` +
     rounds.map((r, i) => `L${x(i).toFixed(1)},${yA(r.active).toFixed(1)}`).join(" ") +
     ` L${x(lastR).toFixed(1)},${(hA - 8).toFixed(1)} L${x(0).toFixed(1)},${(hA - 8).toFixed(1)} Z`;
   const repLine = rounds.map((r, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${yB(r.reputation).toFixed(1)}`).join(" ");
-
   const tip = result.tippingRound;
-
   return (
-    <svg viewBox={`0 0 ${W} ${totalH}`} className="w-full h-auto" role="img"
-      aria-label="Active customers, reputation, and churn per round">
-      {/* Panel A gridlines */}
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <line key={`ga${f}`} x1={padL} x2={W - padR} y1={yA(maxActive * f)} y2={yA(maxActive * f)}
-          stroke="var(--color-card-border)" strokeWidth={1} opacity={0.5} />
+    <svg viewBox={`0 0 ${W} ${totalH}`} className="w-full h-auto" role="img" aria-label="Active customers, reputation, and churn per round">
+      {[0.5, 1].map((f) => (
+        <line key={`g${f}`} x1={padL} x2={W - padR} y1={yA(maxActive * f)} y2={yA(maxActive * f)} stroke="var(--color-card-border)" strokeWidth={1} opacity={0.5} />
       ))}
-      <text x={4} y={yA(maxActive) + 4} fontSize={10} fill="var(--color-muted-fg)">{fmt(maxActive)}</text>
-      <text x={4} y={yA(0)} fontSize={10} fill="var(--color-muted-fg)">0</text>
-      <text x={padL} y={yA(maxActive) - 4} fontSize={11} fill="var(--color-primary-light)" fontWeight={600}>Active customers</text>
-
-      {/* event + tipping markers across panel A */}
+      <text x={2} y={yA(maxActive) + 4} fontSize={9} fill="var(--color-muted-fg)">{fmt(maxActive)}</text>
+      <text x={2} y={yA(0)} fontSize={9} fill="var(--color-muted-fg)">0</text>
+      <text x={padL} y={yA(maxActive) - 3} fontSize={10} fill="var(--color-primary-light)" fontWeight={600}>Active customers</text>
       {events.map((e) => (
-        <g key={`evA${e.label}`}>
+        <g key={`eA${e.label}`}>
           <line x1={x(e.round)} x2={x(e.round)} y1={6} y2={hA - 8} stroke={e.color} strokeWidth={1} strokeDasharray="3 3" opacity={0.8} />
-          <text x={x(e.round) + 3} y={16} fontSize={9} fill={e.color}>{e.label}</text>
+          <text x={x(e.round) + 3} y={14} fontSize={8.5} fill={e.color}>{e.label}</text>
         </g>
       ))}
-      {tip !== null && (
-        <line x1={x(tip)} x2={x(tip)} y1={6} y2={hA - 8} stroke="var(--color-bad)" strokeWidth={1.5} opacity={0.9} />
-      )}
-
-      <path d={activeArea} fill="var(--color-primary)" opacity={0.16} />
-      <path d={activeLine} fill="none" stroke="var(--color-primary-light)" strokeWidth={2} />
-
-      {/* Panel B: churn bars + reputation line */}
+      {tip !== null && <line x1={x(tip)} x2={x(tip)} y1={6} y2={hA - 8} stroke="var(--color-bad)" strokeWidth={1.5} opacity={0.9} />}
+      <path d={area} fill="var(--color-primary)" opacity={0.16} />
+      <path d={line} fill="none" stroke="var(--color-primary-light)" strokeWidth={2} />
       <line x1={padL} x2={W - padR} y1={yB(100)} y2={yB(100)} stroke="var(--color-card-border)" strokeWidth={1} strokeDasharray="2 4" opacity={0.7} />
-      <text x={4} y={yB(100) + 3} fontSize={9} fill="var(--color-muted-fg)">rep 100</text>
-      <text x={padL} y={yB0 + 2} fontSize={11} fill="var(--color-researcher)" fontWeight={600}>Reputation</text>
-      <text x={W - padR} y={yB0 + 2} fontSize={11} fill="var(--color-muted-fg)" textAnchor="end">churn / round</text>
-
+      <text x={2} y={yB(100) + 3} fontSize={8.5} fill="var(--color-muted-fg)">rep</text>
+      <text x={padL} y={yB0 + 1} fontSize={10} fill="var(--color-researcher)" fontWeight={600}>Reputation</text>
+      <text x={W - padR} y={yB0 + 1} fontSize={10} fill="var(--color-muted-fg)" textAnchor="end">churn/round</text>
       {rounds.map((r, i) => {
-        const h = (r.churnedThisRound / maxChurn) * (hB - 16);
-        const bx = x(i) - barW / 2;
-        return (
-          <rect key={`cb${i}`} x={bx} y={yB0 + (hB - 8) - h} width={barW} height={Math.max(0, h)}
-            fill="var(--color-bad)" opacity={0.32} />
-        );
+        const h = (r.churnedThisRound / maxChurn) * (hB - 14);
+        return <rect key={`cb${i}`} x={x(i) - barW / 2} y={yB0 + (hB - 8) - h} width={barW} height={Math.max(0, h)} fill="var(--color-bad)" opacity={0.32} />;
       })}
-      {events.map((e) => (
-        <line key={`evB${e.label}`} x1={x(e.round)} x2={x(e.round)} y1={yB0} y2={yB0 + hB - 8}
-          stroke={e.color} strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
-      ))}
       {tip !== null && (
         <g>
           <line x1={x(tip)} x2={x(tip)} y1={yB0} y2={yB0 + hB - 8} stroke="var(--color-bad)" strokeWidth={1.5} opacity={0.9} />
-          <text x={x(tip) + 3} y={yB0 + hB + 14} fontSize={9} fill="var(--color-bad)">tipping → r{tip}</text>
+          <text x={x(tip) + 3} y={yB0 + hB + 12} fontSize={8.5} fill="var(--color-bad)">tipping r{tip}</text>
         </g>
       )}
       <path d={repLine} fill="none" stroke="var(--color-researcher)" strokeWidth={2} />
-
-      {/* X axis labels */}
       {[0, Math.floor(lastR / 2), lastR].map((i) => (
-        <text key={`xl${i}`} x={x(i)} y={totalH - 4} fontSize={10} fill="var(--color-muted-fg)" textAnchor="middle">r{rounds[i].round}</text>
+        <text key={`x${i}`} x={x(i)} y={totalH - 3} fontSize={9} fill="var(--color-muted-fg)" textAnchor="middle">r{rounds[i].round}</text>
       ))}
     </svg>
   );
 }
 
-// ── Metric card ──────────────────────────────────────────────────────
-function Metric({ label, value, tone }: { label: string; value: string; tone?: "good" | "bad" | "warn" }) {
-  const c = tone === "good" ? "text-good" : tone === "bad" ? "text-bad" : tone === "warn" ? "text-warn" : "text-foreground";
+interface Warning { label: string; tone: "bad" | "warn" }
+function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
+  const w: Warning[] = [];
+  const churnPct = Math.round((1 - r.endingActive / r.startingActive) * 100);
+  if (churnPct >= 60) w.push({ label: `Bleed-out: ~${churnPct}% lost`, tone: "bad" });
+  else if (churnPct >= 30) w.push({ label: `Erosion: ~${churnPct}% lost`, tone: "warn" });
+  if (r.tippingRound !== null) w.push({ label: `Tipping point at round ${r.tippingRound}`, tone: "bad" });
+  if (r.exploitationCost > r.totalRevenue * 0.08) w.push({ label: "Promo margin leak", tone: "warn" });
+  if (r.minReputation < 70) w.push({ label: `Reputation rot to ${Math.round(r.minReputation)}`, tone: "warn" });
+  const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
+    .filter((x) => r.perArch[x.a.key].start > 0).sort((p, q) => q.lost - p.lost)[0];
+  if (worst && worst.lost > 0.5) w.push({ label: `${worst.a.name} ${Math.round(worst.lost * 100)}% gone`, tone: "bad" });
+  return w;
+}
+
+// ── small primitives ─────────────────────────────────────────────────
+function OptionGroup({ value, opts, onChange }: { value: string; opts: { v: string; t: string; note?: string }[]; onChange: (v: string) => void }) {
   return (
-    <div className="rounded-lg border border-card-border bg-card-muted px-3 py-2">
-      <div className="text-xs text-muted-fg">{label}</div>
-      <div className={`text-lg font-semibold tabular-nums ${c}`}>{value}</div>
+    <div className="flex flex-col gap-1.5">
+      {opts.map((o) => (
+        <button key={o.v} onClick={() => onChange(o.v)}
+          className={`text-left rounded-lg border px-3 py-2 text-sm transition-colors ${value === o.v ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
+          {o.t}{o.note ? <span className="block text-xs text-muted-fg mt-0.5">{o.note}</span> : null}
+        </button>
+      ))}
     </div>
   );
 }
 
-interface Warning { label: string; tone: "bad" | "warn" }
-
-function deriveWarnings(cfg: SimConfig, r: SimResult): Warning[] {
-  const w: Warning[] = [];
-  const churnPct = Math.round((1 - r.endingActive / r.startingActive) * 100);
-  if (churnPct >= 60) w.push({ label: `Bleed-out: ~${churnPct}% of base lost`, tone: "bad" });
-  else if (churnPct >= 30) w.push({ label: `Erosion: ~${churnPct}% of base lost`, tone: "warn" });
-  if (r.tippingRound !== null) w.push({ label: `Tipping point at round ${r.tippingRound}`, tone: "bad" });
-  if (r.exploitationCost > r.totalRevenue * 0.08) w.push({ label: "Promo margin leak from exploiters", tone: "warn" });
-  if (r.minReputation < 70) w.push({ label: `Reputation rot to ${Math.round(r.minReputation)}`, tone: "warn" });
-  const worst = ARCHETYPES
-    .map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
-    .filter((xx) => r.perArch[xx.a.key].start > 0)
-    .sort((p, q) => q.lost - p.lost)[0];
-  if (worst && worst.lost > 0.5) w.push({ label: `Segment loss: ${worst.a.name} ${Math.round(worst.lost * 100)}% gone`, tone: "bad" });
-  return w;
+function AdvSlider({ label, value, min, max, step, onChange, format }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format?: (v: number) => string }) {
+  return (
+    <label className="block mb-2">
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="text-xs text-muted-fg">{label}</span>
+        <span className="text-xs text-primary-light tabular-nums">{format ? format(value) : value}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full" />
+    </label>
+  );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────
+const DEFAULT_BIZ: BizInput = { ...EXAMPLES[0] };
+const DEFAULT_SELECTED: Record<string, boolean> = { mainstream: true, fickle: true, loyal: true, skeptic: false, grudge: false };
+const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, noise: 0.05, seed: 12345 };
+
+interface RanState { biz: BizInput; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV }
+
 export default function Page() {
-  const [cfg, setCfg] = useState<SimConfig>(DEFAULT_CONFIG);
-  const [ran, setRan] = useState<SimConfig>(DEFAULT_CONFIG);
+  const [biz, setBiz] = useState<BizInput>(DEFAULT_BIZ);
+  const [selected, setSelected] = useState<Record<string, boolean>>(DEFAULT_SELECTED);
+  const [adv, setAdv] = useState(DEFAULT_ADV);
+  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV });
   const [copied, setCopied] = useState(false);
 
-  // Results are computed from the last *run* config, so the chart never
-  // silently disagrees with the sliders.
-  const result = useMemo<SimResult>(() => runSimulation(ran), [ran]);
-  const verdictText = useMemo(() => verdict(ran, result), [ran, result]);
-  const warnings = useMemo(() => deriveWarnings(ran, result), [ran, result]);
-  const events = useMemo(() => buildEvents(ran), [ran]);
-
-  const stale = JSON.stringify(cfg) !== JSON.stringify(ran);
-  const churnPct = Math.round((1 - result.endingActive / result.startingActive) * 100);
-
-  const set = <K extends keyof SimConfig>(k: K, v: SimConfig[K]) => setCfg((c) => ({ ...c, [k]: v }));
-  const setMix = (k: StratKey, v: number) => setCfg((c) => ({ ...c, mix: { ...c.mix, [k]: v } }));
-  const mixTotal = ARCHETYPES.reduce((s, a) => s + Math.max(0, cfg.mix[a.key]), 0) || 1;
-
-  function run() { setRan(cfg); }
-
-  function copySummary() {
-    const lines = [
-      "CUSTOMER MODEL — stress test result",
-      `Scenario: ${ran.population} customers, ${ran.rounds} rounds, seed ${ran.seed}`,
-      "",
-      "VERDICT",
-      verdictText,
-      "",
-      `Net churn: ${churnPct}%  |  Ending active: ${fmt(result.endingActive)} / ${fmt(result.startingActive)}`,
-      `Revenue: ${fmt(result.totalRevenue)}  |  Exploit cost: ${fmt(result.exploitationCost)}`,
-      `Reputation: ended ${Math.round(result.endingReputation)}, low ${Math.round(result.minReputation)}`,
-      `Tipping round: ${result.tippingRound ?? "none"}`,
-    ];
-    navigator.clipboard?.writeText(lines.join("\n")).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+  const derived = useMemo(() => {
+    const chosen = WORLDS.filter((w) => ran.selected[w.key]);
+    const runs: Run[] = chosen.map((world) => {
+      const cfg = businessToCfg(ran.biz, world, ran.adv);
+      const r = runSimulation(cfg);
+      return { world, cfg, r, lay: laymanAnalysis(cfg, r, world) };
     });
+    let synth = "";
+    if (runs.length >= 2) {
+      const sorted = [...runs].sort((a, b) => b.lay.keep - a.lay.keep);
+      const best = sorted[0], worst = sorted[sorted.length - 1], spread = best.lay.keep - worst.lay.keep;
+      if (spread >= 25) synth = `Same business, very different fates. It does best with ${best.world.name.toLowerCase()} (keeps about ${best.lay.keep} of 100) and worst with ${worst.world.name.toLowerCase()} (keeps about ${worst.lay.keep}). The gap isn't your business plan, it's who your customers are and how hard your moves land on them.`;
+      else if (best.lay.keep < 55) synth = `This business struggles across every crowd tested (it keeps between ${worst.lay.keep} and ${best.lay.keep} of 100). That points at the business moves themselves, not the customer mix.`;
+      else synth = `This business holds up fairly evenly across these crowds (keeps between ${worst.lay.keep} and ${best.lay.keep} of 100), so it isn't very sensitive to who the customers are.`;
+    } else if (runs.length === 1) {
+      synth = `Tested against one customer world. Add another to see how much the outcome depends on who your customers are, not just your business.`;
+    }
+    const teaching = chosen.length ? teachingPrompt(ran.biz, chosen) : "";
+    return { runs, synth, teaching };
+  }, [ran]);
+
+  const stale = JSON.stringify({ biz, selected, adv }) !== JSON.stringify(ran);
+  const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
+  const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
+  function run() { setRan({ biz, selected, adv }); }
+  function copyWriteup() {
+    const el = document.getElementById("result-printable");
+    if (el) navigator.clipboard?.writeText(el.innerText).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); });
   }
+  function printAll() { document.querySelectorAll("details.numbers").forEach((d) => ((d as HTMLDetailsElement).open = true)); window.print(); }
+
+  const toneClass = (t: Layman["tone"]) => t === "good" ? "text-good" : t === "warn" ? "text-warn" : t === "bad" ? "text-bad" : "text-foreground";
 
   return (
-    <main className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <main className="min-h-screen max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
       <header className="mb-7">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Customer Model</h1>
         <p className="text-muted-fg mt-1 max-w-3xl">
-          A deterministic game-theory and behavioral-economics simulation that stress-tests a business
-          model against synthetic customer archetypes. Same inputs give the same result, every time:
-          it is an audit instrument, not a black box.
+          Describe one business, then stress-test it against different customer worlds. The deterministic engine
+          plays each crowd out over repeated rounds under loss aversion and present bias. Same inputs give the same
+          result, every time: an audit instrument, not a black box.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6">
-        {/* ── Controls ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
         <aside className="no-print rounded-xl border border-card-border bg-card p-5 h-fit lg:sticky lg:top-6">
-          <div className="flex gap-2 mb-5">
-            <button onClick={() => setCfg(DEFAULT_CONFIG)} className="flex-1 text-sm rounded-lg border border-card-border bg-card-muted py-2 hover:border-primary transition-colors">Default</button>
-            <button onClick={() => setCfg(HARSH_CONFIG)} className="flex-1 text-sm rounded-lg border border-card-border bg-card-muted py-2 hover:border-primary transition-colors">Harsh</button>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">Your business</h3>
+          <input value={biz.name} onChange={(e) => setField("name", e.target.value)} placeholder="Name this business idea"
+            className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm mb-2" />
+          <input value={biz.sell} onChange={(e) => setField("sell", e.target.value)} placeholder="What you sell (e.g. a $12/mo note app)"
+            className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-2 text-sm" />
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {EXAMPLES.map((ex, i) => (
+              <button key={i} onClick={() => setBiz({ ...ex })}
+                className="text-xs rounded-full border border-card-border bg-card-muted text-muted-fg px-2.5 py-1 hover:border-primary hover:text-foreground transition-colors">{ex.name}</button>
+            ))}
           </div>
 
-          <Section title="Market">
-            <Slider label="Population" value={cfg.population} min={100} max={3000} step={100} onChange={(v) => set("population", v)} format={fmt} />
-            <Slider label="Rounds" value={cfg.rounds} min={10} max={80} step={1} onChange={(v) => set("rounds", v)} />
-            <label className="block mb-1">
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="text-sm text-foreground">Seed</span>
-                <button onClick={() => set("seed", Math.floor(Math.random() * 1e6))} className="text-xs text-primary-light hover:underline">new seed</button>
-              </div>
-              <input type="number" value={cfg.seed} onChange={(e) => set("seed", parseInt(e.target.value || "0", 10))}
-                className="w-full rounded-lg border border-card-border bg-card-muted px-3 py-1.5 text-sm tabular-nums" />
-            </label>
-          </Section>
+          {FIELDS.map((f) => (
+            <div key={f.key} className="mt-4">
+              <div className="text-sm mb-1.5">{f.q}</div>
+              <OptionGroup value={biz[f.key]} opts={f.opts} onChange={(v) => setField(f.key, v)} />
+            </div>
+          ))}
 
-          <Section title="Market mix" sub="Relative weights; normalized to the share shown.">
-            {ARCHETYPES.map((a) => (
-              <Slider
-                key={a.key}
-                label={a.name}
-                value={cfg.mix[a.key]}
-                min={0}
-                max={40}
-                step={1}
-                onChange={(v) => setMix(a.key, v)}
-                format={() => `${Math.round((Math.max(0, cfg.mix[a.key]) / mixTotal) * 100)}%`}
-                hint={a.axelrod}
-              />
-            ))}
-          </Section>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mt-6 mb-1">Customer worlds to test</h3>
+          <p className="text-xs text-muted-fg mb-2">Same business, different customers. Pick the crowds to drop it into.</p>
+          {WORLDS.map((w) => (
+            <button key={w.key} onClick={() => toggleWorld(w.key)}
+              className={`w-full text-left flex items-start gap-2.5 rounded-lg border px-3 py-2 mb-1.5 transition-colors ${selected[w.key] ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
+              <span className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[10px] ${selected[w.key] ? "bg-primary border-primary text-white" : "border-muted-fg"}`}>{selected[w.key] ? "✓" : ""}</span>
+              <span><span className="text-sm font-medium">{w.name}</span><span className="block text-xs text-muted-fg leading-snug">{w.blurb}</span></span>
+            </button>
+          ))}
 
-          <Section title="Policy levers">
-            <Slider label="Price index" value={cfg.priceIndex} min={60} max={200} step={1} onChange={(v) => set("priceIndex", v)} hint="100 = launch price" />
-            <Slider label="Value index" value={cfg.valueIndex} min={40} max={160} step={1} onChange={(v) => set("valueIndex", v)} hint="100 = promised value" />
-            <Slider label="Friction / lock-in" value={cfg.friction} min={0} max={100} step={1} onChange={(v) => set("friction", v)} hint="switching cost; damps churn" />
-            <Toggle label="Standing retention promo" value={cfg.promoActive} onChange={(v) => set("promoActive", v)} hint="Defends churn, leaks margin to exploiters." />
-          </Section>
-
-          <Section title="Behavioral params">
-            <Slider label="Loss aversion (λ)" value={cfg.lossAversion} min={1} max={3.5} step={0.05} onChange={(v) => set("lossAversion", v)} format={(v) => v.toFixed(2)} hint="Tversky-Kahneman default 2.25" />
-            <Slider label="Present bias" value={cfg.presentBias} min={1} max={3} step={0.1} onChange={(v) => set("presentBias", v)} format={(v) => v.toFixed(1)} hint="overweight on immediate rival lures" />
-            <Slider label="Reference re-anchoring" value={cfg.refAdapt} min={0} max={1} step={0.05} onChange={(v) => set("refAdapt", v)} format={(v) => v.toFixed(2)} hint="how fast expectations reset to current price" />
-            <Slider label="Perception noise" value={cfg.noise} min={0} max={0.3} step={0.01} onChange={(v) => set("noise", v)} format={(v) => v.toFixed(2)} hint="chance a move is misread" />
-          </Section>
-
-          <Section title="Scenario events" sub="Round 0 = none.">
-            <Slider label="Price-hike round" value={cfg.hikeRound} min={0} max={cfg.rounds} step={1} onChange={(v) => set("hikeRound", v)} />
-            <Slider label="Hike size (pts)" value={cfg.hikeSize} min={0} max={80} step={1} onChange={(v) => set("hikeSize", v)} />
-            <Slider label="Service-incident round" value={cfg.incidentRound} min={0} max={cfg.rounds} step={1} onChange={(v) => set("incidentRound", v)} />
-            <Slider label="Competitor-entry round" value={cfg.competitorRound} min={0} max={cfg.rounds} step={1} onChange={(v) => set("competitorRound", v)} />
-            <Slider label="Competitor lure" value={cfg.competitorOffer} min={0} max={100} step={1} onChange={(v) => set("competitorOffer", v)} hint="strength of the rival's opening offer" />
-          </Section>
-
-          <button
-            onClick={run}
-            className={`w-full rounded-lg py-2.5 font-medium transition-colors ${
-              stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"
-            }`}
-          >
-            {stale ? "Run simulation →" : "Re-run"}
+          <button onClick={run} className={`w-full mt-4 rounded-lg py-2.5 font-medium transition-colors ${stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"}`}>
+            {stale ? "Run stress test →" : "Re-run"}
           </button>
+
+          <details className="mt-4 border-t border-card-border pt-3">
+            <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Advanced — engine parameters</summary>
+            <p className="text-xs text-muted-fg my-2">Applied to every world. λ is the shared science; what changes between worlds is who the customers are.</p>
+            <AdvSlider label="Rounds" value={adv.rounds} min={10} max={80} step={1} onChange={(v) => setAdv((a) => ({ ...a, rounds: Math.round(v) }))} />
+            <AdvSlider label="Loss aversion λ" value={adv.lossAversion} min={1} max={3.5} step={0.05} onChange={(v) => setAdv((a) => ({ ...a, lossAversion: v }))} format={(v) => v.toFixed(2)} />
+            <AdvSlider label="Perception noise" value={adv.noise} min={0} max={0.3} step={0.01} onChange={(v) => setAdv((a) => ({ ...a, noise: v }))} format={(v) => v.toFixed(2)} />
+            <AdvSlider label="Seed" value={adv.seed} min={1} max={999999} step={1} onChange={(v) => setAdv((a) => ({ ...a, seed: Math.round(v) }))} />
+          </details>
         </aside>
 
-        {/* ── Results ── */}
         <section>
           <div className="no-print flex items-center gap-2 mb-4">
-            <button onClick={() => window.print()} title="Save or print this. The saved copy keeps the verdict and every warning shown here."
-              className="rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 transition-colors">
-              Save / Print
-            </button>
-            <button onClick={copySummary} className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">
-              {copied ? "Copied" : "Copy summary"}
-            </button>
-            {stale && <span className="text-xs text-warn ml-1">Controls changed — re-run to update results.</span>}
+            <button onClick={printAll} title="Save or print this. The saved copy keeps every verdict and warning shown here."
+              className="rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 transition-colors">Save / Print</button>
+            <button onClick={copyWriteup} className="rounded-lg border border-card-border bg-card text-sm px-4 py-2 hover:border-primary transition-colors">{copied ? "Copied" : "Copy writeup"}</button>
+            {stale && <span className="text-xs text-warn ml-1">Inputs changed — re-run to update.</span>}
           </div>
 
           <div id="result-printable">
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
-              <h2 className="text-xl font-semibold">Stress-test result</h2>
-              <span className="text-sm text-muted-fg tabular-nums">
-                {fmt(ran.population)} customers · {ran.rounds} rounds · seed {ran.seed}
-              </span>
+              <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
+              <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · seed {ran.adv.seed}</span>
             </div>
+            <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
 
-            {/* MUST-SHOW: verdict + warnings. Never dropped from the saved copy. */}
-            <div className="rounded-xl border border-card-border bg-card p-5 my-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">Verdict</h3>
-              <p className="text-[15px] leading-relaxed text-foreground">{verdictText}</p>
-              {warnings.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {warnings.map((w, i) => (
-                    <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${
-                      w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"
-                    }`}>{w.label}</span>
-                  ))}
-                </div>
-              )}
-            </div>
+            {derived.runs.length === 0 ? (
+              <div className="rounded-xl border border-card-border bg-card p-5 text-sm text-muted-fg">Pick at least one customer world on the left, then run.</div>
+            ) : (
+              <>
+                {derived.synth && (
+                  <div className="rounded-xl border border-primary bg-primary/10 p-5 mb-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">The short version</h3>
+                    <p className="text-[15px] leading-relaxed">{derived.synth}</p>
+                  </div>
+                )}
+                {derived.teaching && (
+                  <div className="rounded-xl border border-dashed border-primary/60 bg-card-muted p-4 mb-5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">Use this in class</h3>
+                    <p className="text-sm leading-relaxed">{derived.teaching}</p>
+                  </div>
+                )}
 
-            {/* Headline metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
-              <Metric label="Net churn" value={`${churnPct}%`} tone={churnPct >= 30 ? "bad" : churnPct <= 0 ? "good" : undefined} />
-              <Metric label="Ending active" value={`${fmt(result.endingActive)} / ${fmt(result.startingActive)}`} />
-              <Metric label="Total revenue" value={fmt(result.totalRevenue)} />
-              <Metric label="Exploit cost" value={fmt(result.exploitationCost)} tone={result.exploitationCost > result.totalRevenue * 0.08 ? "warn" : undefined} />
-              <Metric label="Ending rep." value={`${Math.round(result.endingReputation)}`} tone={result.endingReputation < 70 ? "bad" : result.endingReputation > 100 ? "good" : undefined} />
-              <Metric label="Lowest rep." value={`${Math.round(result.minReputation)}`} tone={result.minReputation < 70 ? "warn" : undefined} />
-              <Metric label="Tipping round" value={result.tippingRound !== null ? `r${result.tippingRound}` : "none"} tone={result.tippingRound !== null ? "bad" : "good"} />
-              <Metric label="Loss aversion λ" value={ran.lossAversion.toFixed(2)} />
-            </div>
-
-            {/* Chart */}
-            <div className="rounded-xl border border-card-border bg-card p-4 mb-5">
-              <SimChart result={result} events={events} />
-            </div>
-
-            {/* Per-archetype survival */}
-            <div className="rounded-xl border border-card-border bg-card p-5 mb-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-3">Segment survival</h3>
-              <div className="space-y-2.5">
-                {ARCHETYPES.map((a) => {
-                  const pa = result.perArch[a.key];
-                  const survRate = pa.start ? pa.survived / pa.start : 0;
+                {derived.runs.map(({ world, cfg, r, lay }) => {
+                  const churnPct = Math.round((1 - r.endingActive / r.startingActive) * 100);
+                  const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
+                    .filter((x) => r.perArch[x.a.key].start > 0).sort((x, y) => y.lost - x.lost)[0];
+                  const warns = deriveWarnings(cfg, r);
                   return (
-                    <div key={a.key} className="flex items-center gap-3">
-                      <div className="w-40 shrink-0">
-                        <div className="text-sm leading-tight" style={{ color: a.color }}>{a.name}</div>
-                        <div className="text-xs text-muted-fg">{a.axelrod}</div>
+                    <div key={world.key} className="rounded-xl border border-card-border bg-card p-5 mb-4">
+                      <div className="flex items-baseline justify-between flex-wrap gap-2">
+                        <span className="text-sm font-bold tracking-wide text-primary-light">{world.name}</span>
+                        <span className="text-xs text-muted-fg">{world.blurb}</span>
                       </div>
-                      <div className="flex-1 h-3 rounded-full bg-card-muted overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${survRate * 100}%`, backgroundColor: a.color, opacity: 0.85 }} />
+                      <div className={`text-[19px] font-bold tracking-tight mt-2 mb-1.5 ${toneClass(lay.tone)}`}>{lay.headline}</div>
+                      <p className="text-[14.5px] leading-relaxed mb-3">{lay.analysis}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-fg mb-3">
+                        <span>Keep <b className="text-foreground">~{lay.keep}</b> of 100</span>
+                        <span>First to leave: <b className="text-foreground">{worst && worst.lost > 0.3 ? worst.a.name : "no single segment cracked"}</b></span>
+                        <span>{r.tippingRound !== null ? <>Sudden break at <b className="text-foreground">round {r.tippingRound}</b></> : <>No sudden break, <b className="text-foreground">gradual</b></>}</span>
                       </div>
-                      <div className="w-24 shrink-0 text-right text-sm tabular-nums text-muted-fg">
-                        {fmt(pa.survived)}/{fmt(pa.start)} <span className="text-foreground">{Math.round(survRate * 100)}%</span>
+                      <SimChart result={r} events={buildEvents(cfg)} />
+                      <div className="text-xs text-muted-fg border-t border-card-border pt-2.5 mt-2.5 leading-relaxed">
+                        <b className="text-foreground">Engine verdict:</b> {verdict(cfg, r)}
                       </div>
+                      {warns.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {warns.map((w, i) => (
+                            <span key={i} className={`text-xs rounded-full px-2.5 py-1 border ${w.tone === "bad" ? "border-bad/40 text-bad bg-bad/10" : "border-warn/40 text-warn bg-warn/10"}`}>{w.label}</span>
+                          ))}
+                        </div>
+                      )}
+                      <details className="numbers mt-3">
+                        <summary className="cursor-pointer text-xs text-primary-light">Show the numbers</summary>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3">
+                          {[["Net churn", `${churnPct}%`], ["Ending / start", `${fmt(r.endingActive)} / ${fmt(r.startingActive)}`], ["Lowest rep.", `${Math.round(r.minReputation)}`], ["Tipping", r.tippingRound !== null ? `r${r.tippingRound}` : "none"]].map((m, i) => (
+                            <div key={i} className="rounded-lg border border-card-border bg-card-muted px-3 py-2"><div className="text-xs text-muted-fg">{m[0]}</div><div className="text-base font-semibold tabular-nums">{m[1]}</div></div>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5">
+                          {ARCHETYPES.map((a) => {
+                            const pa = r.perArch[a.key]; const sr = pa.start ? pa.survived / pa.start : 0;
+                            return (
+                              <div key={a.key} className="flex items-center gap-3">
+                                <div className="w-36 shrink-0 text-xs" style={{ color: a.color }}>{a.name}</div>
+                                <div className="flex-1 h-2.5 rounded-full bg-card-muted overflow-hidden"><div className="h-full rounded-full" style={{ width: `${sr * 100}%`, backgroundColor: a.color, opacity: 0.85 }} /></div>
+                                <div className="w-16 text-right text-xs tabular-nums text-muted-fg"><b className="text-foreground">{Math.round(sr * 100)}%</b> stay</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
                     </div>
                   );
                 })}
-              </div>
-            </div>
+              </>
+            )}
 
-            {/* Methodology */}
             <div className="rounded-xl border border-card-border bg-card-muted p-5 text-sm text-muted-fg leading-relaxed">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">Methodology</h3>
-              <p className="mb-2">
-                The seven archetypes are adapted from strategies that did well in Axelrod&apos;s iterated
-                prisoner&apos;s-dilemma tournaments (Axelrod, <em>The Evolution of Cooperation</em>, 1984):
-                Tit-for-Tat, Tit-for-Two-Tats, Grim Trigger, Pavlov, and relatives. Each pairs that strategy
-                with a behavioral-economics bias profile.
-              </p>
-              <p className="mb-2">
-                Perception of a price or value change runs through prospect theory: losses loom larger than
-                equivalent gains by a factor λ, set to 2.25 after Tversky &amp; Kahneman (1992). That figure
-                is the classic anchor, not a law; meta-analytic estimates put the mean nearer 1.96 with a
-                spread of roughly 1.5–3, so λ is exposed as a tunable dial rather than hard-coded.
-              </p>
-              <p>
-                The engine is deliberately deterministic rather than a committee of LLM personas answering
-                as fake customers. Correlated language models tend to agree with each other and with you,
-                which manufactures false consensus; a transparent rule-based model is reproducible, auditable,
-                and is itself the independent check on AI hand-waving. Same seed, same result, every run.
-              </p>
+              <p className="mb-2">Seven customer archetypes adapted from strategies that did well in Axelrod&apos;s iterated prisoner&apos;s-dilemma tournaments (Tit-for-Tat and relatives), each paired with a behavioral-economics bias profile. A customer world is a particular mix of those archetypes.</p>
+              <p className="mb-2">Perceived price and value changes run through prospect theory: losses loom larger than equal gains by a factor λ, default 2.25 after Tversky &amp; Kahneman (1992). λ is held constant across worlds as the shared science; what changes between worlds is who the customers are.</p>
+              <p>Deterministic by design, not a committee of LLM personas answering as fake customers. A transparent rule-based model is reproducible and auditable, and is itself the check on AI hand-waving. Same seed, same result, every run.</p>
             </div>
           </div>
         </section>
