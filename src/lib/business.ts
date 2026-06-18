@@ -157,11 +157,11 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const churnPct = 100 - keep;
   const lam = cfg.lossAversion.toFixed(1);
   let tone: Layman["tone"], headline: string;
-  if (grow) { tone = "good"; headline = `Grows. Start with 100 ${world.noun} and you'd have about ${keep} — word of mouth more than replaces who leaves.`; }
-  else if (churnPct < 15) { tone = "good"; headline = `Holds. About ${keep} of every 100 ${world.noun} stay.`; }
-  else if (churnPct < 30) { tone = ""; headline = `Mostly holds, with some bleed: about ${keep} of every 100 ${world.noun} stay.`; }
-  else if (churnPct < 55) { tone = "warn"; headline = `Erodes. You keep about ${keep} of every 100 ${world.noun}, and lose the rest.`; }
-  else { tone = "bad"; headline = `Walks out. Only about ${keep} of every 100 ${world.noun} are still with you at the end.`; }
+  if (grow) { tone = "good"; headline = `Grows. Start with 100 ${world.noun} and you end with about ${keep} per 100 — word of mouth more than replaces who leaves.`; }
+  else if (churnPct < 15) { tone = "good"; headline = `Holds. You end with about ${keep} for every 100 ${world.noun} you start with.`; }
+  else if (churnPct < 30) { tone = ""; headline = `Mostly holds, with some bleed: about ${keep} left for every 100 ${world.noun} you start with.`; }
+  else if (churnPct < 55) { tone = "warn"; headline = `Erodes. About ${keep} of every 100 ${world.noun} are still with you at the end; the rest are gone.`; }
+  else { tone = "bad"; headline = `Walks out. Only about ${keep} of every 100 ${world.noun} remain at the end.`; }
 
   const tip = r.tippingRound;
   const hasHike = cfg.hikeRound > 0 && cfg.hikeSize >= 8;
@@ -170,7 +170,7 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const promoLeak = r.exploitationCost > r.totalRevenue * 0.08;
   let cause: string;
   if (hasComp && (tip === null || Math.abs(tip - cfg.competitorRound) <= 3) && churnPct >= 15)
-    cause = `The turning point was the cheaper rival arriving at round ${cfg.competitorRound}. ${world.impulsive ? "This crowd jumps at an instant saving" : "Even this steadier crowd felt the pull"}, and ${cfg.friction < 30 ? "with little holding them in place, plenty left." : "switching costs slowed the bleed but didn't stop it."}`;
+    cause = `The turning point was the cheaper rival arriving at round ${cfg.competitorRound}. ${world.impulsive ? "This crowd jumps at an instant saving" : "Even customers who weren't deal-hunting felt the pull"}, and ${cfg.friction < 30 ? "with little holding them in place, plenty left." : "switching costs slowed the bleed but didn't stop it."}`;
   else if (hasHike && (tip === null || Math.abs(tip - cfg.hikeRound) <= 4) && churnPct >= 15)
     cause = `The price increase at round ${cfg.hikeRound} did the damage. To these customers a rise stings about ${lam}x as much as the same-size discount would please them, so the ones who keep score started shopping the moment it landed.`;
   else if (thinValue && churnPct >= 15)
@@ -249,11 +249,61 @@ const PRICE_DESC: Record<PriceMove, string> = { cut: "cut prices to compete", ho
 const COUNTER: Record<PriceMove, string> = { cut: "hold price instead of cutting", hold: "raise price a little", raiseS: "hold price and lean on your retention play instead", raiseB: "hold price and lean on your retention play instead" };
 const RET_DESC: Record<Retention, string> = { none: "no special way to keep them", loyalty: "loyalty rewards", lockin: "a lock-in contract", promo: "a standing promo" };
 
-export function teachingPrompt(biz: BizInput, worlds: CustomerWorld[]): string {
+export function teachingPrompt(biz: BizInput, worlds: CustomerWorld[], lambda = 2.25): string {
   const a = [...worlds].sort((x, y) => y.presentBias - x.presentBias)[0];
   const b = [...worlds].sort((x, y) => x.presentBias - y.presentBias)[0];
   const pair = worlds.length >= 2 && a.key !== b.key
     ? `how the ${a.name.toLowerCase()} react versus the ${b.name.toLowerCase()}`
     : `how this crowd reacts`;
-  return `You set this business to ${PRICE_DESC[biz.price]} with ${RET_DESC[biz.retention]}. Run it as is, then change one thing — ${COUNTER[biz.price]} — and run it again. Compare ${pair}. Which customer world punishes the move hardest, and what does loss aversion (a loss feels about twice as heavy as the same-size gain) say about why?`;
+  return `You set this business to ${PRICE_DESC[biz.price]} with ${RET_DESC[biz.retention]}. Run it as is, then change one thing — ${COUNTER[biz.price]} — and run it again. Compare ${pair}. Which customer world punishes the move hardest, and what does loss aversion (at the current setting, a loss feels about ${lambda.toFixed(2)}× as heavy as the same-size gain) say about why?`;
+}
+
+// ── Finance read: optional unit economics on the frozen engine ───────
+// Opt-in. The engine's per-round `revenue` is in price-index points (full
+// price = priceIndex, 100 at launch). The student supplies the launch
+// price in dollars, a gross margin, an optional CAC, and a per-round
+// discount rate; this reads the existing result into cohort LTV, NPV, and
+// CAC payback. Nothing here touches sim.ts — it only converts and discounts
+// numbers the engine already produced. Off (returns on:false) until a real
+// launch price is entered, so the default freshman path stays unit-free.
+export interface FinanceInput {
+  launchPrice: number;   // $ at price-index 100 (0 ⇒ finance off)
+  marginPct: number;     // gross margin %, 0..100
+  cac: number;           // acquisition cost per customer, $ (0 ⇒ unknown)
+  discountPct: number;   // discount rate % PER ROUND (0 ⇒ undiscounted)
+}
+
+export interface FinanceRead {
+  on: boolean;
+  grossPerStart: number;        // $ revenue (net of promo) per starting customer
+  contribPerStart: number;      // $ gross-margin contribution per starting customer
+  npvPerStart: number;          // $ discounted contribution per starting customer
+  promoLeak: number;            // $ leaked defending churn (0 when immaterial)
+  ltvCac: number | null;        // NPV contribution : CAC
+  paybackRound: number | null;  // first round cumulative discounted contrib/cust ≥ CAC
+}
+
+export function financeRead(cfg: SimConfig, r: SimResult, fin: FinanceInput): FinanceRead {
+  const on = !!fin.launchPrice && fin.launchPrice > 0;
+  const toUSD = (points: number) => points * (fin.launchPrice / 100);
+  const m = Math.max(0, Math.min(100, fin.marginPct)) / 100;
+  const d = Math.max(0, fin.discountPct) / 100;
+  const start = r.startingActive || 1;
+
+  const grossPerStart = toUSD(r.totalRevenue) / start;
+  const contribPerStart = grossPerStart * m;
+
+  let npvTotal = 0, cum = 0;
+  let paybackRound: number | null = null;
+  for (const rd of r.rounds) {
+    const disc = (toUSD(rd.revenue) * m) / Math.pow(1 + d, rd.round);
+    npvTotal += disc;
+    cum += disc;
+    if (paybackRound === null && fin.cac > 0 && cum / start >= fin.cac) paybackRound = rd.round;
+  }
+  const npvPerStart = npvTotal / start;
+  const promoLeak = r.exploitationCost > r.totalRevenue * 0.08 ? toUSD(r.exploitationCost) : 0;
+  const ltvCac = fin.cac > 0 ? npvPerStart / fin.cac : null;
+
+  return { on, grossPerStart, contribPerStart, npvPerStart, promoLeak, ltvCac, paybackRound };
 }

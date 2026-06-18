@@ -1,6 +1,7 @@
 # Customer Model — Handoff
 
-State doc. Terse by design. Resolved detail lives in docs/history.md.
+State doc. Terse by design. Resolved detail lives in docs/history.md. Roadmap,
+v2 parking lot, and decision log live in docs/plan.md.
 
 ## PROJECT
 A business-school AI tool: a deterministic, game-theory + behavioral-economics
@@ -61,11 +62,11 @@ result read on the frozen engine; reference-class + noise + inversion (one sweep
 and CLV (one read) qualified, Six Sigma and the writing-exercise lenses did not.
 
 ## OPEN QUESTIONS
-1. Economic depth: the faculty review (embedded-browser, prior version) asks for
-   a real finance layer — optional cost/margin input → cohort LTV / NPV, so one
-   run serves marketing, finance, and managerial-econ classes. It adds input
-   complexity that cuts against freshman cognitive ease. Build it, or hold v1 to
-   the current unit-free CLV line? Jeff's call.
+1. Economic depth: RESOLVED — finance layer shipped as an opt-in collapsed block
+   (launch price, margin, CAC, per-round discount) feeding a collapsed per-world
+   dollar read (revenue, contribution, NPV, LTV:CAC, payback). Off until a price
+   is entered, so the freshman path stays unit-free. Reads engine revenue;
+   sim.ts untouched. Calendar-mapping the NPV is a v2 item (plan.md §5).
 2. Voice/LLM layer: "after v1" is agreed; the only question left is whether it
    ever ships, and if so as archetype narration vs business autofill. Not urgent.
 
