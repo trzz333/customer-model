@@ -94,7 +94,7 @@ export const TERM_DEFS = {
   tipping: "The round where a lot of customers leave at once, instead of a few at a time.",
   contribution: "The money left from a sale after you subtract what it cost to deliver it.",
   npv: "What future money is worth today. A dollar next year is worth a little less than a dollar now.",
-  ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is healthy.",
+  ltvcac: "What a customer is worth to you versus what it cost to get them. Above 1 means worth more than they cost; 3 or more is a common rule-of-thumb for healthy.",
   payback: "How many rounds until a customer pays back what it cost to get them.",
   loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
   present: "People grab a reward now even when waiting a bit would be better.",
@@ -222,7 +222,7 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const worst = ARCHETYPES.map((a) => ({ a, lost: r.perArch[a.key].start ? r.perArch[a.key].churned / r.perArch[a.key].start : 0 }))
     .filter((x) => r.perArch[x.a.key].start > 0).sort((x, y) => y.lost - x.lost)[0];
   let who = "";
-  if (!grow && worst && worst.lost > 0.4) who = ` The first out the door were the ${worst.a.name.toLowerCase()} (${Math.round(worst.lost * 100)}% gone), ${GLOSS[worst.a.key]}. That's the lever to pull first.`;
+  if (!grow && worst && worst.lost > 0.4) who = ` The first out the door were the ${worst.a.name.toLowerCase()} (${Math.round(worst.lost * 100)}% gone), ${GLOSS[worst.a.key]} — the type that goes first whenever anything slips, in any world.`;
   return { tone, headline, analysis: cause + who, keep, grow };
 }
 
@@ -408,6 +408,52 @@ export function financeRead(cfg: SimConfig, r: SimResult, fin: FinanceInput): Fi
   const ltvCac = fin.cac > 0 ? npvPerStart / fin.cac : null;
 
   return { on, grossPerStart, contribPerStart, npvPerStart, promoLeak, ltvCac, paybackRound };
+}
+
+// ── Finance, BANDED across the seed set (so it reads like everything else) ──
+// financeRead is a point read on one roll. But the headline, the band strip
+// and the A/B bars are all luck-bands, and a lone one-decimal LTV:CAC printed
+// next to them invites exactly the third-digit reading the tool warns against.
+// So read finance across the SAME REF_SEEDS already computed in the sweep and
+// report each figure as a typical run (median) with its luck range. Pure:
+// reuses sweep.runs, touches no engine state.
+export interface BandStat { lo: number; mid: number; hi: number }
+const bandOf = (xs: number[]): BandStat => {
+  const s = [...xs].sort((a, b) => a - b);
+  return { lo: s[0], mid: s[Math.floor(s.length / 2)], hi: s[s.length - 1] };
+};
+
+export interface FinanceBand {
+  world: CustomerWorld;
+  on: boolean;
+  cacKnown: boolean;
+  gross: BandStat;
+  contrib: BandStat;
+  npv: BandStat;
+  ltvCac: BandStat | null;     // null when CAC unknown
+  payback: BandStat | null;    // in rounds; null when CAC unknown or never pays back on any roll
+  paybackNever: boolean;       // at least one roll never pays back
+  promoLeak: number;           // median leak $, 0 when immaterial
+}
+
+export function financeBand(sweep: WorldSweep, fin: FinanceInput): FinanceBand {
+  const reads = sweep.runs.map((sr) => financeRead(sr.cfg, sr.r, fin));
+  const cacKnown = fin.cac > 0;
+  const ltvVals = reads.map((x) => x.ltvCac).filter((v): v is number => v !== null);
+  const payVals = reads.map((x) => x.paybackRound).filter((v): v is number => v !== null);
+  const leaks = reads.map((x) => x.promoLeak).filter((v) => v > 0);
+  return {
+    world: sweep.world,
+    on: reads[0]?.on ?? false,
+    cacKnown,
+    gross: bandOf(reads.map((x) => x.grossPerStart)),
+    contrib: bandOf(reads.map((x) => x.contribPerStart)),
+    npv: bandOf(reads.map((x) => x.npvPerStart)),
+    ltvCac: cacKnown && ltvVals.length ? bandOf(ltvVals) : null,
+    payback: cacKnown && payVals.length ? bandOf(payVals) : null,
+    paybackNever: cacKnown && reads.some((x) => x.paybackRound === null),
+    promoLeak: leaks.length ? bandOf(leaks).mid : 0,
+  };
 }
 
 // ── Shareable seeded run-link (the grading / answer-key primitive) ───

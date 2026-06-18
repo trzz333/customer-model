@@ -19,7 +19,7 @@ import {
   referenceBand,
   placeInBand,
   unitEconomics,
-  financeRead,
+  financeBand,
   sweepWorld,
   bandPhrase,
   compareBusinesses,
@@ -44,6 +44,24 @@ import {
 
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const DIFFS: Difficulty[] = ["calm", "normal", "harsh"];
+
+// Banded finance cells: a "~" median with the luck range only when it's wide
+// enough to matter, so the finance table reads like the rest of the page
+// (typical run plus spread) instead of a lone precise-looking number.
+type Band = { lo: number; mid: number; hi: number };
+const money$ = (b: Band) =>
+  b.hi - b.lo >= 1
+    ? <>~${fmt(b.mid)} <span className="text-muted-fg font-normal">(${fmt(b.lo)}–${fmt(b.hi)})</span></>
+    : <>~${fmt(b.mid)}</>;
+const ltvCell = (b: Band) =>
+  b.hi - b.lo >= 0.2
+    ? <>~{b.mid.toFixed(1)}× <span className="text-muted-fg font-normal">({b.lo.toFixed(1)}–{b.hi.toFixed(1)})</span></>
+    : <>~{b.mid.toFixed(1)}×</>;
+const paybackCell = (b: Band | null, never: boolean): string => {
+  if (!b) return never ? "never" : "—";
+  const core = b.hi > b.lo ? `r${b.mid} (r${b.lo}–r${b.hi})` : `r${b.mid}`;
+  return never ? `${core}, some never` : core;
+};
 
 // First sentence of a paste, collapsed to one line for the snapshot card.
 function snapshot(text: string): string {
@@ -457,7 +475,7 @@ export default function Page() {
     if (band && sweeps.length >= 1 && band.spread >= 8) {
       synth += ` Across all five customer worlds (not only the ones you picked) this business usually ends with between about ${band.lo} and ${band.hi} per 100 started, so where it lands is mostly about which crowd it meets.`;
     }
-    const finRows = sweeps.map((s) => ({ world: s.world, fin: financeRead(s.median.cfg, s.median.r, ran.fin) }));
+    const finRows = sweeps.map((s) => ({ world: s.world, fin: financeBand(s, ran.fin) }));
     const cmp = ran.compare && chosen.length ? compareBusinesses(ran.biz, ran.bizB, chosen, advEng) : null;
     const frag = ran.fragility && chosen.length ? chosen.map((w) => fragilityScan(ran.biz, w, advEng)) : null;
     return { sweeps, synth, teaching, band, finRows, cmp, frag };
@@ -796,7 +814,7 @@ export default function Page() {
               <details className={`numbers mb-4 rounded-xl border border-card-border bg-card p-5 ${exp.finance ? "" : "export-hidden"}`} open={financeLed}>
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-fg">Finance — unit economics in dollars</summary>
                 <p className="text-xs text-muted-fg mt-2 mb-3 leading-relaxed">
-                  Each run read into money at <b className="text-foreground">${fmt(ran.fin.launchPrice)}</b>/round, <b className="text-foreground">{ran.fin.marginPct}%</b> gross margin{ran.fin.discountPct > 0 ? <>, discounted <b className="text-foreground">{ran.fin.discountPct}%</b>/round</> : null}{ran.fin.cac > 0 ? <>, <b className="text-foreground">${fmt(ran.fin.cac)}</b> to acquire each customer</> : null}. Per starting customer, over {ran.adv.rounds} rounds, on the typical run.
+                  Each run read into money at <b className="text-foreground">${fmt(ran.fin.launchPrice)}</b>/round, <b className="text-foreground">{ran.fin.marginPct}%</b> gross margin{ran.fin.discountPct > 0 ? <>, discounted <b className="text-foreground">{ran.fin.discountPct}%</b>/round</> : null}{ran.fin.cac > 0 ? <>, <b className="text-foreground">${fmt(ran.fin.cac)}</b> to acquire each customer</> : null}. Per starting customer, over {ran.adv.rounds} rounds, each figure a typical run with its luck range across many rolls.
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
@@ -814,15 +832,15 @@ export default function Page() {
                       {derived.finRows.map(({ world, fin }) => (
                         <tr key={world.key} className="border-b border-card-border/50">
                           <td className="py-1.5 pr-3">{world.name}</td>
-                          <td className="py-1.5 px-2 text-right tabular-nums">${fmt(fin.grossPerStart)}</td>
-                          <td className="py-1.5 px-2 text-right tabular-nums">${fmt(fin.contribPerStart)}</td>
-                          <td className="py-1.5 px-2 text-right tabular-nums">${fmt(fin.npvPerStart)}</td>
+                          <td className="py-1.5 px-2 text-right tabular-nums">{money$(fin.gross)}</td>
+                          <td className="py-1.5 px-2 text-right tabular-nums">{money$(fin.contrib)}</td>
+                          <td className="py-1.5 px-2 text-right tabular-nums">{money$(fin.npv)}</td>
                           {ran.fin.cac > 0 && (
-                            <td className={`py-1.5 px-2 text-right tabular-nums font-medium ${fin.ltvCac !== null && fin.ltvCac < 1 ? "text-bad" : fin.ltvCac !== null && fin.ltvCac >= 3 ? "text-good" : "text-foreground"}`}>
-                              {fin.ltvCac !== null ? `${fin.ltvCac.toFixed(1)}×` : "—"}
+                            <td className={`py-1.5 px-2 text-right tabular-nums font-medium ${fin.ltvCac && fin.ltvCac.mid < 1 ? "text-bad" : fin.ltvCac && fin.ltvCac.mid >= 3 ? "text-good" : "text-foreground"}`}>
+                              {fin.ltvCac ? ltvCell(fin.ltvCac) : "—"}
                             </td>
                           )}
-                          {ran.fin.cac > 0 && <td className="py-1.5 pl-2 text-right tabular-nums">{fin.paybackRound !== null ? `r${fin.paybackRound}` : "never"}</td>}
+                          {ran.fin.cac > 0 && <td className="py-1.5 pl-2 text-right tabular-nums">{paybackCell(fin.payback, fin.paybackNever)}</td>}
                         </tr>
                       ))}
                     </tbody>
@@ -831,7 +849,7 @@ export default function Page() {
                 {derived.finRows.some((x) => x.fin.promoLeak > 0) && (
                   <p className="text-xs text-warn mt-3 leading-relaxed">Promo leak: {derived.finRows.filter((x) => x.fin.promoLeak > 0).map((x) => `${x.world.name} ~$${fmt(x.fin.promoLeak)}`).join(", ")} bled back out defending churn instead of building margin.</p>
                 )}
-                <p className="text-[11px] text-muted-fg mt-3 leading-relaxed">Revenue is net of promo spend, as the engine books it. Contribution applies gross margin; NPV discounts the per-round contribution stream. LTV:CAC under 1 destroys value, 3+ is the common healthy-growth rule of thumb. Payback is the round where discounted contribution per starting customer first covers acquisition cost. Dollars follow from one assumed launch price, so read the ranking across worlds, not the third significant figure.</p>
+                <p className="text-[11px] text-muted-fg mt-3 leading-relaxed">Revenue is net of promo spend, as the engine books it. Contribution applies gross margin; NPV discounts the per-round contribution stream. LTV:CAC under 1 destroys value, 3+ is the common healthy-growth rule of thumb. Payback is the round where discounted contribution per starting customer first covers acquisition cost. Each figure is the typical run (median) with its luck range in parentheses; dollars follow from one assumed launch price, so read the ranking across worlds, not any single number.</p>
               </details>
             )}
 
