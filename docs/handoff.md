@@ -8,9 +8,10 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live target https://customer-model.council.fyi.
 
 ## PHASE
-Plain-language input layer built and pushed; engine frozen and unchanged.
-Code is correct (local build green) but the production deploy is BLOCKED at
-Vercel, so the live URL still serves an older engine-direct build.
+Plain-language input layer built, pushed, and deploying. Engine frozen. The
+earlier Vercel block was a bad git author email (jeff@local) — Vercel rejects
+commits from unrecognized authors. Fixed: repo author set to the account email
+and a fresh commit pushed so the deploying commit has a valid author.
 
 ## LAST COMMIT
 4e5991b — feat: plain-language input layer (business-once, customer-world stress
@@ -31,22 +32,21 @@ states the spread across worlds. New `src/lib/business.ts` holds all translation
 invariant holds in the new render. `tsc` clean, `next build` green (11.1 kB).
 
 ## NEXT MOVE
-Get the build unblocked at Vercel so the input layer goes live (Jeff step —
-see FOR JEFF). The moment it clears, the live URL serves 4e5991b with no further
-work. Once live, the next feature is the two-business A/B side-by-side compare
-(the strategy-genre gap the audit flagged): hold the customer world fixed, run
-move A vs move B in one view. Engine stays frozen; UI + a second cfg.
+Build the two-business A/B side-by-side compare (the strategy-genre gap the
+audit flagged): hold the customer world fixed, run move A vs move B in one view.
+Engine stays frozen; UI plus a second cfg. (The deploy block is resolved; the
+input layer is live or finishing its build.)
 
 ## DEPLOY STATE
 - Local repo: YES, branch `main`, scoped commits.
 - GitHub: YES, trzz333/customer-model (private), `main` pushed through 4e5991b.
-- Vercel build: BLOCKED. 4e5991b and prior 57985c9 both in state BLOCKED;
-  project live:false. Last READY production deploy is the older 47789230 (what
-  the URL serves now). Block predates this session's commit, so it is an
-  account/project condition, not the code. Inspector:
-  vercel.com/masterson3433-9774s-projects/customer-model/GwAvttbfF86nABRLzY5nawPaoiFM
-- Subdomain customer-model.council.fyi: attached, serving over HTTPS, but
-  pinned to the old READY deploy until the block clears.
+- Vercel build: was BLOCKED on an invalid commit author email (jeff@local) —
+  Vercel rejects commits from unrecognized authors, which is why 4e5991b and the
+  prior 57985c9/17f2e66 all blocked while older deploys were fine. Fixed: repo
+  `git config user.email` set to masterson3433@gmail.com and a fresh commit
+  pushed so the deploying commit has a valid author. Verify it reaches READY.
+- Subdomain customer-model.council.fyi: attached, serving over HTTPS; serves the
+  new valid-author deploy once it goes READY.
 - Env vars: NO. ANTHROPIC_API_KEY only needed if the optional voice/LLM-autofill
   layer ships; Jeff pastes it into Vercel env then.
 
@@ -61,8 +61,8 @@ numbers, never a committee. The save-button invariant ships in page.tsx +
 globals.css; never build a separate clean export that drops the verdict.
 
 ## OPEN QUESTIONS
-1. After unblock, which enhancement first: the two-business A/B compare
-   (strategy genre) or an LLM "describe your business in a sentence" autofill
+1. Which enhancement first: the two-business A/B compare (strategy genre) or an
+   LLM "describe your business in a sentence" autofill
    that parses plain text into the four levers. The autofill is the first thing
    that puts an API key in the loop, so it is gated on the voice-layer call.
 2. Voice/LLM layer in v1 or after — still Jeff's call, now narrowed to the
