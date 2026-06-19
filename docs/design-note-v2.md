@@ -263,7 +263,9 @@ extended-relationship evidence that average and first impression dominate our ca
 candidate refinement, low priority and pre-registered: test a slightly stronger
 NEGATIVE-peak term (the robust, retained part of peak-end is a severe failure), gated by
 G4, with the fail condition that it must not move equal-mean verdicts beyond the band G2
-allows. An option for the next engine session, not a mandate.
+allows. An option for the next engine session, not a mandate. [CLOSED 2026-06-19:
+tested in sweep-peakend-negpeak.ts; ADMISSIBLE-BUT-NOT-MATERIAL, 2.2.0 stays champion.
+See Net next steps 3.]
 
 ### Default / auto-renew nudge (deferred retention bump)
 Caveat carried: nudge effects are contested (Mertens 2022 aggregate d approx 0.43 vs
@@ -295,5 +297,14 @@ the modest range already planned.
    value sized on default-specific evidence (robust-but-modest, endorsement-
    conditioned); lock-in split into contract vs switching cost; run-link additive.
    Input-layer only, no ENGINE_VERSION bump. Verified by smoke-retention.ts.
-3. Optional pre-registered peak-end negative-peak test, gated by G4/G2.
+3. Pre-registered peak-end negative-peak test: DONE (sweep-peakend-negpeak.ts,
+   2026-06-19). Verdict ADMISSIBLE-BUT-NOT-MATERIAL. The challenger amplifies only
+   below-neutral craters: effPeak = 100 + kappa*dev for dev<0, spikes untouched;
+   kappa=1 nests 2.2.0 byte-for-byte. G4 strengthens monotonically (margin 3.2 ->
+   4.13), but the G2 average-dominance band caps kappa at 1.31 (breaks at 1.32, dev
+   12.04 > 12). At that ceiling the G4-margin gain is only 0.93 reputation point,
+   under the 1.0-pt materiality bar set BEFORE running. The band, not the evidence,
+   sets the ceiling; the symmetric 2.2.0 peak already carries negative peaks
+   (tie-broken toward the crater). 2.2.0 stays champion, NO version bump. The sweep is
+   pre-registered and reproducible if the materiality bar is ever revisited.
 None overturns a shipped result; the engine (2.2.0) is unchanged by this pass.
