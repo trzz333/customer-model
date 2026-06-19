@@ -494,3 +494,52 @@ walkthrough in persona with a read-only UI-vs-source coverage cross-check
 isn't wired at a site" defect class a chat tester can't see. Decision: use the
 Antigravity IDE, not the standalone 2.0 app, because the task needs codebase
 reading + browser + artifacts in one place.
+
+
+## 2026-06-18 — External-audit triage, honesty fix, repo made public
+
+Resolved this session, evicted from handoff.md:
+
+EXTERNAL-AUDIT TRIAGE. Ingested the Antigravity IDE coverage docs (UI-vs-source
+TERM_DEFS/ARCH_DEF cross-check) plus a fresh professor-persona tester on prod.
+Triaged every finding against the source before touching anything.
+Real, fixed (commit 0ebaef3; business.ts + page.tsx; sim.ts untouched):
+- laymanAnalysis printed "Nothing shocked them. Steady price..." on the
+  churn<15 catch-all even when price was CUT — the shock branches are gated on
+  churnPct>=15, so a price cut against a crowd that holds fell through to a
+  catch-all that hardcoded "steady price." Now the catch-all reads cfg.priceIndex
+  (<100 -> undercut wording) / hasHike (-> absorbed-hike wording) / else steady.
+- reputation rendered bare at two Teaching sites: the "Reputation rot to N"
+  warning chip and the "Lowest rep." numbers label. Both wired via Term (the
+  Warning interface gained def/lead/tail for the non-archetype chip case). The
+  SVG chart axis labels were left bare (not a feasible Term site).
+- the Teaching subhead said terms "explain themselves on hover"; corrected to
+  "click any underlined term" (the click/tap mechanism is by design).
+- the Term popover had no dismissal and stayed stuck open across scroll/re-run;
+  now closes on outside pointerdown, scroll (capture), and Escape.
+- the LTV:CAC def now spells out Customer Acquisition Cost (CAC).
+Rejected as tester artifacts / stale, with reasons:
+- "present bias has no popup" — false; loss + present are both wired in the
+  "How to read this" block, which is the Teaching/Student surface.
+- "archetype names invisible in dark mode" — stale; wrapping names in Term
+  (b41f69f) gave them text-foreground, so the old raw a.color text is gone.
+- archetype names bare in the narrative paragraph, and loss aversion bare in the
+  "Use this in class" box — generated strings with the def glossed inline and
+  the same terms one tap away on the card; not worth splitting prose.
+- Difficulty / Fragility / Inversion "undefined" — each is explained inline at
+  point of use.
+Validation: typecheck clean, build green, / 24.1 -> 24.4 kB.
+
+BONNER OUTREACH (the NEXT-STEP FORK, resolved). Jeff sent Professor Bonner an
+email: in Topeka, an in-person meeting offer for the visuals, and three URLs —
+amatiprojects.com + amati-preview.vercel.app (Carlos's contracting marketing
+package) and customer-model.council.fyi (framed as a response to Bonner's last
+lecture). Then a follow-up with the repo link.
+
+REPO MADE PUBLIC. trzz333/customer-model flipped private -> public via the
+browser so Bonner can read it without a GitHub account (no native private
+link-share exists for a personal repo; collaborator invites require an account).
+Jeff performed the visibility-change clicks himself (access-control change);
+Claude drove to the Danger Zone and verified the Public badge afterward. docs/
+are now world-visible; history.md carries Vercel IDs + a gmail, accepted
+knowingly. No keys in the repo.
