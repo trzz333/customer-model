@@ -667,3 +667,48 @@ firms up justification, re-bases one sizing, and tips one taste fork.
 Off-repo decision: the LinkedIn/career brief was produced as a download artifact and
 deliberately NOT committed, since the code may become Washburn's and self-promo doesn't
 belong in a transferable repo.
+
+## 2026-06-19 — Retention schema-bump shipped + taste forks resolved + minimal-default locked
+
+Crash recovery first: a prior session left an in-progress edit to business.ts (the
+deferred retention schema-bump, design-note §1). Recovered and finished it (commit
+5489aa3). The schema-bump: Retention enum gained default/auto-renew, switchcost, and
+contract; the old combined "lockin" was retired to a decode-only legacy key
+(legacy:true) so old shared run-links still decode and reproduce byte-identically.
+RETENTION_MECHANISMS extended; FIELDS / RET_DESC / GLOSSARY derive and filter legacy;
+added retentionOpts(current) which re-surfaces a legacy option in the form only when an
+incoming link carries it (wired into both form loops in page.tsx). businessToCfg friction
+map made monotone: none 18 < promo 32 < loyalty 45 < default 52 < switchcost 58 < contract
+68 < lockin 72. default sized at the conservative field lower bound per the caveat pass
+(defaults are the most robust nudge subcategory, field < lab, endorsement/transparency
+pathway named in its def), replacing the old "contested, near-null" framing. Input-layer
+only, no ENGINE_VERSION bump. The crash's two unfinished pieces were the real bugs: the
+run-link RETENTIONS allowlist was still the stale v1 four-value list (so contract/
+switchcost/default decoded back to "none" via the pick fallback), and retentionOpts was
+defined but unconsumed. Both fixed. Verified by a new committed smoke (smoke-retention.ts,
+25 checks: round-trip all values, exact + monotone friction, lockin==72, legacy surfacing,
+FIELDS/GLOSSARY hiding) — all pass.
+
+Then (commit 00e90a9) Jeff delegated both parked taste forks and set a standing "minimal
+look as the default" directive. Resolved both toward progressive disclosure, the spine the
+project already adopted from comparable business sims (Capsim tier-by-complexity), now made
+the explicit tie-breaker. Fork 1 (named retention mechanisms in Student): keep current
+gating — plain option labels carry the move; the mechanism name + honest def stay in the
+glossary and Teaching tappable terms; no code change. Fork 2 (reference-price lever in
+Student): the dial stays Teaching/Deep only (honors the locked no-dials rule, minimal
+default, and the caveat that reference-price/WTP anchoring is the more mixed application
+than robust estimation anchoring), BUT the mechanism was made teachable where the evidence
+says students should meet it — added a plain `anchor` def to TERM_DEFS (single source of
+truth), a glossary entry, and one anchoring-GATED sentence in the Student/Teaching "How to
+read this" block, off by default so the minimal fresh landing is untouched. Synthesis:
+students SEE and learn the frame, faculty CONTROL the dial. Also fixed a latent typecheck
+break: smoke-retention.ts (added after 5489aa3's typecheck ran) imports with a .ts
+extension, which tsc rejects unless the script is excluded; generalized tsconfig's exclude
+to globs (smoke*.ts, sweep*.ts) so future scripts don't recur. Decisions + the standing
+minimal-default principle recorded in design-note-v2.md (OPEN forks → RESOLVED).
+
+Validation each commit: typecheck clean, build green (/ 26.9 → 27.1 kB), smoke 25/25.
+Save-button invariant re-confirmed intact (gated note is additive prose inside
+#result-printable; verdict/warnings untouched in WorldCard). Engine unchanged at 2.2.0.
+HEAD 00e90a9. NEXT MOVE set to the LinkedIn unfurl (OG metadata in root layout + a
+1200×630 app/opengraph-image.png, none exists yet).
