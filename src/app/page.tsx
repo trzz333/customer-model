@@ -12,6 +12,7 @@ import {
 } from "@/lib/sim";
 import {
   FIELDS,
+  retentionOpts,
   EXAMPLES,
   WORLDS,
   businessToCfg,
@@ -675,7 +676,7 @@ export default function Page() {
           {FIELDS.map((f) => (
             <div key={f.key} className="mt-4">
               <div className="text-sm mb-1.5">{f.q}</div>
-              <OptionGroup value={biz[f.key]} opts={f.opts} onChange={(v) => setField(f.key, v)} />
+              <OptionGroup value={biz[f.key]} opts={f.key === "retention" ? retentionOpts(biz.retention) : f.opts} onChange={(v) => setField(f.key, v)} />
             </div>
           ))}
 
@@ -717,7 +718,7 @@ export default function Page() {
                 {FIELDS.map((f) => (
                   <div key={f.key} className="mt-3">
                     <div className="text-sm mb-1.5">{f.q}</div>
-                    <OptionGroup value={bizB[f.key]} opts={f.opts} onChange={(v) => setFieldB(f.key, v)} />
+                    <OptionGroup value={bizB[f.key]} opts={f.key === "retention" ? retentionOpts(bizB.retention) : f.opts} onChange={(v) => setFieldB(f.key, v)} />
                   </div>
                 ))}
               </div>

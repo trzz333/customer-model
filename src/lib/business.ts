@@ -19,7 +19,11 @@ import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from
 
 export type PriceMove = "cut" | "hold" | "raiseS" | "raiseB";
 export type ValuePosture = "premium" | "par" | "thin";
-export type Retention = "none" | "loyalty" | "lockin" | "promo";
+// "lockin" is RETIRED but retained as a decode-only key: it was the v1 combined
+// option (contract + switching cost), now split into "contract" and "switchcost".
+// Keeping it in the enum means older shared run-links still decode and reproduce
+// byte-identically, and RET_DESC (cast over Retention) stays total.
+export type Retention = "none" | "loyalty" | "promo" | "default" | "switchcost" | "contract" | "lockin";
 export type Threat = "none" | "mild" | "hard";
 
 export interface BizInput {
@@ -56,22 +60,26 @@ export type LeverKey = "price" | "value" | "retention" | "threat";
 export interface Field { key: LeverKey; q: string; opts: FieldOpt[] }
 
 // ── Retention vocabulary (names the real mechanism behind the lever) ──
-// v2 retention-vocabulary layer. The four retention OPTIONS already exist as the
-// `Retention` enum and resolve to the engine's friction/promo knobs in
-// businessToCfg (which stays the single source of the NUMBERS). This table is the
-// single source of the WORDS: each option's student label, its under-option note,
-// the named real-world mechanism, an in-sentence phrase for the teaching prompt,
-// and a plain definition that is honest about what the engine does and does NOT
-// separate. It adds no lever and touches no engine math; it only names, defines,
+// v2 retention-vocabulary layer. The retention OPTIONS resolve to the engine's
+// friction/promo knobs in businessToCfg (which stays the single source of the
+// NUMBERS). This table is the single source of the WORDS: each option's student
+// label, its under-option note, the named real-world mechanism, an in-sentence
+// phrase for the teaching prompt, and a plain definition that is honest about what
+// the engine does and does NOT separate. It adds no engine math; it names, defines,
 // and routes text that used to live inline in FIELDS and RET_DESC.
 //
-// Two real retention drivers are deliberately NOT options here, and the prose says
-// so rather than faking them: habit/inertia is modelled on the CUSTOMER side as the
-// `inertial` archetype, not as a business play; and a default / auto-renew lever
-// (retention by making continuation the no-action path) is a distinct mechanism the
-// engine does not yet carry. Adding it is a versioned change (new enum value + cfg
-// mapping + run-link schema bump), tracked in docs/design-note-v2.md, not smuggled
-// in here.
+// Schema-bump landed (design-note-v2 §1, the deferred step): "default / auto-renew"
+// is now its own option (retention by making continuation the no-action path), and
+// the old combined "lock-in" is split into "contract" and "switchcost" so the two
+// distinct barriers are named apart. These are input-layer only (enum + cfg + run-
+// link allowlist); no ENGINE_VERSION bump. "lockin" stays as a hidden legacy entry
+// (legacy: true) so older links still decode; FIELDS and GLOSSARY filter it out, and
+// retentionOpts() re-surfaces it only when an incoming link already carries it.
+//
+// One real driver is still deliberately NOT a business option: habit/inertia is
+// modelled on the CUSTOMER side as the `inertial` archetype, not as a play a
+// business chooses. The vocabulary names it in the right place rather than faking a
+// lever for it.
 export interface RetentionMechanism {
   key: Retention;
   label: string;   // student-facing option label (the form radio)
@@ -79,6 +87,7 @@ export interface RetentionMechanism {
   phrase: string;  // lowercase in-sentence phrase for the teaching prompt
   term: string;    // mechanism name for the glossary
   def: string;     // plain definition, honest about the friction/promo knob
+  legacy?: boolean; // retired option: decode-only, hidden from the fresh form + glossary
 }
 
 export const RETENTION_MECHANISMS: RetentionMechanism[] = [
@@ -88,12 +97,25 @@ export const RETENTION_MECHANISMS: RetentionMechanism[] = [
   { key: "loyalty", label: "Loyalty rewards", note: "earn-over-time perk",
     phrase: "loyalty rewards", term: "Loyalty / earned reward",
     def: "A perk that builds up the longer someone stays (points, status, a punch-card), raising the cost of walking away from banked value. The model treats it as moderate friction, not a separate loyalty dynamic." },
-  { key: "lockin", label: "A contract or lock-in", note: "contract and/or switching cost",
-    phrase: "a lock-in contract", term: "Lock-in (contract + switching cost)",
-    def: "Two different real mechanisms bundled together: a contractual term you cannot easily exit, and the switching cost of leaving (re-setup, data export, fees). The model treats both as the same high-friction knob and does not tell them apart." },
   { key: "promo", label: "A standing discount/promo", note: "defends churn, leaks margin",
     phrase: "a standing promo", term: "Standing discount",
     def: "An ongoing price concession that keeps price-sensitive customers from leaving. It defends churn but bleeds margin, and deal-chasers milk it. In the model it is moderate friction plus an active promo." },
+  { key: "default", label: "It auto-renews by default", note: "opt-out, not opt-in",
+    phrase: "an auto-renewing default", term: "Default / auto-renew",
+    def: "Continuing is the no-action path: it renews unless the customer cancels, so inertia (and the sense that renewing is the endorsed choice) keeps many in. Defaults are one of the more reliable behavioral nudges, but field results run smaller than lab ones, so the model sizes this as moderate friction, not a hard barrier. The customer can still leave freely by acting; the model does not separately represent the endorsement signal." },
+  { key: "switchcost", label: "High switching cost", note: "costly or annoying to leave",
+    phrase: "high switching costs", term: "Switching cost",
+    def: "Leaving is costly or a hassle even with no contract: re-setup, exporting data, learning a new tool, losing history. It slows churn without binding anyone. The model treats it as fairly high friction, below a binding contract." },
+  { key: "contract", label: "A contract or commitment", note: "a binding term to exit",
+    phrase: "a binding contract", term: "Contract / commitment",
+    def: "A term the customer has agreed to and cannot easily exit (an annual plan, an early-termination fee). The hardest single retention lever while the term runs, though customers can still lapse at renewal. The model treats it as the highest non-legacy friction." },
+  // Legacy: the v1 combined option, kept so older shared links still decode and
+  // reproduce. Hidden from the fresh form and glossary; retentionOpts() re-surfaces
+  // it only when an incoming link already carries it. Maps to the highest friction
+  // (both barriers stacked), unchanged from v1, so old runs are byte-identical.
+  { key: "lockin", label: "Lock-in (contract + switching cost)", note: "retired — now split in two",
+    phrase: "a lock-in contract", term: "Lock-in (retired)", legacy: true,
+    def: "The original combined option, now split into Contract and Switching cost so the two real mechanisms can be named apart. Kept so older shared links still open and reproduce; it maps to the highest friction (both barriers stacked). New runs should pick contract or switching cost." },
 ];
 
 // ── The plain-language business questions (the front door) ───────────
@@ -108,19 +130,30 @@ export const FIELDS: Field[] = [
     { v: "par", t: "About the same" },
     { v: "thin", t: "Stretched thin / cutting corners" } ] },
   { key: "retention", q: "What keeps customers from leaving?",
-    opts: RETENTION_MECHANISMS.map((m) => ({ v: m.key, t: m.label, note: m.note })) },
+    opts: RETENTION_MECHANISMS.filter((m) => !m.legacy).map((m) => ({ v: m.key, t: m.label, note: m.note })) },
   { key: "threat", q: "What's the competitive threat?", opts: [
     { v: "none", t: "No real threat right now" },
     { v: "mild", t: "A cheaper option exists", note: "enters later, soft lure" },
     { v: "hard", t: "Aggressive rival undercutting", note: "enters early, hard lure" } ] },
 ];
 
+// Retention options for the live form. Same as FIELDS' retention opts (legacy
+// hidden), but if an incoming run-link already carries a legacy value (e.g. an old
+// "lockin" link), append that one option so the radio renders selected instead of
+// blank. Keeps the fresh form clean while never dropping an old link's selection.
+export function retentionOpts(current: Retention): FieldOpt[] {
+  const opts = RETENTION_MECHANISMS.filter((m) => !m.legacy).map((m) => ({ v: m.key, t: m.label, note: m.note }));
+  const cur = RETENTION_MECHANISMS.find((m) => m.key === current);
+  if (cur?.legacy) opts.push({ v: cur.key, t: cur.label, note: cur.note });
+  return opts;
+}
+
 // Example businesses: pre-fill the form so a class can demo in seconds,
 // then swap in a student's own idea. These are not the templates; the
 // customer worlds below are.
 export const EXAMPLES: BizInput[] = [
   { name: "Note-taking app", sell: "a $12/mo subscription note app", price: "raiseS", value: "premium", retention: "loyalty", threat: "hard" },
-  { name: "Neighborhood gym", sell: "a $40/mo gym with annual contracts", price: "hold", value: "par", retention: "lockin", threat: "mild" },
+  { name: "Neighborhood gym", sell: "a $40/mo gym with annual contracts", price: "hold", value: "par", retention: "contract", threat: "mild" },
   { name: "Coffee shop", sell: "$5 lattes with a punch-card", price: "hold", value: "par", retention: "loyalty", threat: "hard" },
 ];
 
@@ -148,7 +181,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: "Customer worlds", def: TERM_DEFS.worlds },
   { term: "Churn", def: TERM_DEFS.churn },
   { term: "Retention", def: TERM_DEFS.retention },
-  ...RETENTION_MECHANISMS.filter((m) => m.key !== "none").map((m) => ({ term: m.term, def: m.def })),
+  ...RETENTION_MECHANISMS.filter((m) => m.key !== "none" && !m.legacy).map((m) => ({ term: m.term, def: m.def })),
   { term: "Reputation", def: TERM_DEFS.reputation },
   { term: "Tipping point", def: TERM_DEFS.tipping },
   { term: "Loss aversion", def: TERM_DEFS.loss },
@@ -226,10 +259,20 @@ export function businessToCfg(biz: BizInput, world: CustomerWorld, adv?: AdvOver
   c.valueIndex = biz.value === "premium" ? 120 : biz.value === "thin" ? 82 : 100;
   c.incidentRound = biz.value === "thin" ? Math.round(c.rounds * 0.55) : 0;
 
+  // Retention → friction/promo (single source of the NUMBERS). Monotone by barrier
+  // strength: none < promo < loyalty < default < switchcost < contract < lockin.
+  // default/auto-renew is sized at the robust-but-modest field lower bound (defaults
+  // are the most reliable nudge subcategory, but field RCTs run below lab effects);
+  // it is real inertia, not a hard exit barrier. switchcost (a cost/hassle to leave)
+  // sits below contract (a binding term). lockin is the retired combined option and
+  // keeps its v1 value (both barriers stacked) so old links reproduce exactly.
   if (biz.retention === "none") { c.friction = 18; c.promoActive = false; }
-  else if (biz.retention === "loyalty") { c.friction = 45; c.promoActive = false; }
-  else if (biz.retention === "lockin") { c.friction = 72; c.promoActive = false; }
   else if (biz.retention === "promo") { c.friction = 32; c.promoActive = true; }
+  else if (biz.retention === "loyalty") { c.friction = 45; c.promoActive = false; }
+  else if (biz.retention === "default") { c.friction = 52; c.promoActive = false; }
+  else if (biz.retention === "switchcost") { c.friction = 58; c.promoActive = false; }
+  else if (biz.retention === "contract") { c.friction = 68; c.promoActive = false; }
+  else if (biz.retention === "lockin") { c.friction = 72; c.promoActive = false; }
 
   if (biz.threat === "none") { c.competitorRound = 0; c.competitorOffer = 0; }
   else if (biz.threat === "mild") { c.competitorRound = Math.round(c.rounds * 0.6); c.competitorOffer = 30; }
@@ -548,7 +591,10 @@ export interface DecodedRunLink {
 const LINK_SCHEMA = 1;
 const PRICES: PriceMove[] = ["cut", "hold", "raiseS", "raiseB"];
 const VALUES: ValuePosture[] = ["premium", "par", "thin"];
-const RETENTIONS: Retention[] = ["none", "loyalty", "lockin", "promo"];
+// Decode allowlist: pick() does a membership test, so ORDER is not load-bearing
+// (tokens store the enum string, not an index). Must CONTAIN every valid value,
+// including legacy "lockin" so old shared links still decode and reproduce.
+const RETENTIONS: Retention[] = ["none", "loyalty", "promo", "default", "switchcost", "contract", "lockin"];
 const THREATS: Threat[] = ["none", "mild", "hard"];
 const DIFFS: Difficulty[] = ["calm", "normal", "harsh"];
 
