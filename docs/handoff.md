@@ -10,17 +10,20 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 CLOSED and hardened. External-audit triage (Antigravity coverage docs + a
-fresh professor-persona tester) is done: the real coverage/wiring gaps are
-fixed and the tester artifacts rejected with reasons. Next session shifts to v2.
+v1 CLOSED and hardened; v2 PLANNING done, build not yet started. External-audit
+triage (Antigravity coverage docs + a fresh professor-persona tester) is done: the
+real coverage/wiring gaps are fixed and the tester artifacts rejected with reasons.
+This session was research + spec only, no code: the marketing-psych research is
+persisted into plan.md and the first three v2 mechanisms are specced with verifying
+sweeps in docs/design-note-v2.md. Engine frozen, v1 untouched. Next session builds
+mechanism #1 (retention vocabulary).
 
 ## LAST COMMIT
-0ebaef3 — fix: honest narrative on a price cut + reputation/copy wiring (the
-laymanAnalysis price-cut contradiction, reputation Term at the warning chip +
-"Lowest rep." label, hover->click subhead copy, Term popover outside-click/
-scroll/Esc dismissal, CAC spelled out in the LTV:CAC def). typecheck clean,
-build green, / at 24.4 kB. A docs/handoff commit follows this one; re-confirm
-HEAD with git rev-parse, don't trust a hardcoded hash.
+Docs-only this session (v2 research persisted to plan.md + design-note-v2.md
+added; handoff updated). Last CODE commit is still 0ebaef3 — fix: honest narrative
+on a price cut + reputation/copy wiring; typecheck clean, build green, / at
+24.4 kB. v1 engine untouched since. Re-confirm HEAD with git rev-parse; don't trust
+a hardcoded hash.
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds; engine
@@ -28,23 +31,27 @@ Define one business in plain terms, run it across named customer worlds; engine
 headline is a band. All v1 surfaces live: per-world cards (verdict + warnings),
 cross-world A/B compare + inversion finder, within-world fragility sweep, seeded
 run-link, /glossary, per-round CSV, three depth tiers (Student / Teaching / Deep
-dive) with a Finance-focus toggle. This session was triage + hardening only, no
-engine change: fixed the per-world causal sentence that printed "Steady price"
-on a price cut (now reads the actual move), wired the reputation definition at
+dive) with a Finance-focus toggle. The last code session (0ebaef3) was triage +
+hardening only, no engine change: fixed the per-world causal sentence that printed
+"Steady price" on a price cut (now reads the actual move), wired the reputation
+definition at
 its two bare Teaching sites (warning chip, "Lowest rep." label), corrected the
 "on hover" subhead to click/tap, gave the Term popover outside-click/scroll/Esc
 dismissal, and spelled out CAC in the LTV:CAC def. Save invariant confirmed
 holding (Term popover is no-print; chip + label text still print).
 
 ## NEXT MOVE
-Start v2. Open the richest parked item (plan.md V2 PARKING LOT #1): a richer
-RETENTION VOCABULARY. "What keeps customers from leaving?" currently collapses
-to one friction scalar + a promo flag; v2 names the real mechanisms (switching
-cost, habit, contractual lock-in, reciprocity, brand, network effects, choice-
-architecture nudges) honestly in the prose while still resolving to the existing
-friction/promo knobs. Engine stays frozen: do NOT shoehorn nudges into friction
-(a nudge is not a higher switching cost); making them mechanical is an explicit
-engine-version decision, not a v1-style lever rename.
+Build v2 mechanism #1 per docs/design-note-v2.md: the RETENTION VOCABULARY as a
+small typed layer (`RETENTION_MECHANISMS` in business.ts, mirroring TERM_DEFS),
+naming four mechanisms (switching cost, contractual lock-in, habit/inertia,
+default/auto-renew) that resolve to the existing friction/promo knobs and say so
+in the prose. Prose-only, key-free, NO engine touch; page.tsx + /glossary read the
+table. Then the two engine challengers in order: anchoring reference-price, then
+peak-end memory, each a versioned ENGINE_VERSION bump gated on the pre-registered
+sweep written into the design note. Do NOT shoehorn nudges into friction; the
+default/auto-renew label is promo-adjacent and carries the contested-nudge caveat.
+Research + verdicts live in plan.md; the build spec + sweeps live in
+design-note-v2.md.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.

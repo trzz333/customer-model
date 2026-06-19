@@ -203,12 +203,19 @@ RECOMMENDED V2 SPINE: adopt the design principle above; LEAD with anchoring; ADD
 peak-end memory; FOLD defaults into the retention-vocabulary item at a modest
 effect.
 
-OPEN TASTE FORK (Jeff's call, carried from PARKING LOT #1): prose-only naming vs a
-small reusable retention-vocabulary layer, and how many mechanisms to name.
+TASTE FORK (carried from PARKING LOT #1) — RESOLVED: small typed vocabulary layer
+over prose-only, naming four mechanisms (switching cost, contractual lock-in,
+habit/inertia, default/auto-renew). The remaining taste calls (Student-tier
+visibility; faculty-only vs student-visible anchoring lever) are in the design
+note's OPEN section.
 
-NEXT CONCRETE ACTION (after this is persisted): turn the top 1–2 (anchoring,
-peak-end) into a design note — which engine variable each touches, prose-only vs
-versioned mechanism, and the sweep that verifies it.
+DONE NEXT: the design note exists at docs/design-note-v2.md. It records the
+delegated calls (retention vocabulary ships as a small typed layer naming FOUR
+mechanisms; anchoring leads in its reference-price form with the decoy branch held;
+peak-end ships in a conservative average-plus-corrections form) and gives each a
+proposed functional form plus a pre-registered verifying sweep. Build order there:
+retention vocabulary (prose, key-free) first, then anchoring as the first
+ENGINE_VERSION challenger, then peak-end as the second.
 
 ## DECISIONS / CHANGELOG
 
