@@ -11,17 +11,20 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v2 BUILD. Engine mechanisms #1 (retention vocabulary), #2 (anchoring), #3
-(peak-end memory) SHIPPED; engine is ENGINE_VERSION 2.2.0, unchanged for several
-sessions. Recent work was input-layer + UI + research: the deferred retention
-schema-bump shipped, both parked taste forks were resolved, and "minimal by
-default" is now a standing UI principle. Engine freeze is LIFTED (standing).
+v2 BUILD, engine roadmap COMPLETE. Mechanisms #1 (retention vocabulary), #2
+(anchoring, fully wired: engine + Teaching/Deep dial + Student teachable note +
+run-link persistence), #3 (peak-end memory) all SHIPPED; the optional peak-end
+negative-peak refinement was tested and CLOSED not-material this session. Engine is
+ENGINE_VERSION 2.2.0, unchanged for several sessions and stable. Social unfurl
+(LinkedIn/OG) shipped this session. The next substantive item is a product/values
+fork (the LLM voice layer), not an engineering task. Engine freeze is LIFTED
+(standing).
 
 ## LAST COMMIT
-00e90a9 — feat: resolve taste forks (minimal-default standing) + make anchoring
-teachable in Student. Preceded by 5489aa3 (retention schema-bump). Both pushed;
-typecheck clean, build green (/ at 27.1 kB), smoke-retention.ts 25/25. Re-confirm
-HEAD with git rev-parse; don't trust a hardcoded hash.
+23df3c0 — test(peakend): pre-registered negative-peak refinement test, closed
+not-material. Preceded by f3b4fc5 (OG image crisp-fix) and 1d53911 (LinkedIn/OG
+unfurl). All pushed; typecheck clean, build green, sweep-peakend.ts gates pass.
+Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds. Engine
@@ -38,50 +41,36 @@ reference-price frame is now teachable in the Student read via a plain glossary
 term and one anchoring-GATED sentence shown only when a faculty run-link turns the
 frame on. All v1/v2 surfaces remain: per-world cards (verdict + warn chips), A/B
 compare + inversion finder, fragility sweep, seeded run-link, /glossary, per-round
-CSV, three depth tiers + Finance toggle.
+CSV, three depth tiers + Finance toggle. The site now unfurls on LinkedIn/social: root
+layout exports openGraph + twitter metadata and a 1200x630 src/app/opengraph-image.png
+via Next's file convention.
 
 ## NEXT MOVE
-Make customer-model.council.fyi UNFURL on LinkedIn (it currently returns "invalid
-link" and won't feature). Next.js App Router renders meta server-side, so the
-no-JS-crawler caveat does NOT apply — but the tags MUST live in the Metadata API
-in the root layout (src/app/layout.tsx), not a client component. Today's layout
-exports only title + description: no metadataBase, no openGraph, no twitter, no og
-image. Extend the metadata export:
-
-  export const metadata = {
-    metadataBase: new URL('https://customer-model.council.fyi'),
-    title: 'Customer Model — deterministic behavioral-economics simulator',
-    description: 'Open-source deterministic customer/behavioral-economics simulator. Next.js/TypeScript.',
-    openGraph: {
-      type: 'website',
-      url: 'https://customer-model.council.fyi',
-      title: 'Customer Model — deterministic behavioral-economics simulator',
-      description: 'Open-source deterministic customer-behavior simulator, built solo.',
-    },
-    twitter: { card: 'summary_large_image' },
-  };
-
-IMAGE: use Next's file convention — create app/opengraph-image.png at 1200×630
-(NONE exists yet; no public/, no app/opengraph-image — it must be designed and
-generated this session). With the file convention Next wires og:image + twitter
-image automatically and absolutely (metadataBase), so do NOT also pass
-openGraph.images:['/og.png'] (there is no public/og.png; that would 404 or
-duplicate). Pick the file convention as the single image source. The image should
-read cleanly at small sizes; match the app's dark card aesthetic and tokens.
-COPY ACCURACY (hard rule): open-source, deterministic simulator, built solo. Do
-NOT claim users, revenue, adoption, funding, or a team. After deploy, Jeff
-verifies with linkedin.com/post-inspector to force a re-scrape (LinkedIn caches
-the prior failed fetch). VALIDATE as usual (typecheck, build) and confirm the
-generated tags in the built HTML. Then resume the v2 roadmap (next parked item:
-optional pre-registered peak-end negative-peak test, gated G4/G2 — see
-design-note-v2 §CAVEAT RECONCILIATION).
+The v2 engine-mechanism roadmap is COMPLETE and verified at 2.2.0 (retention,
+anchoring, peak-end all shipped; the optional peak-end negative-peak refinement was
+tested and closed not-material, sweep-peakend-negpeak.ts). The social unfurl shipped.
+There is no remaining no-fork engineering task on the critical path. The next
+substantive item is the LLM VOICE LAYER, which is OPEN QUESTION #1: a genuine
+product/values fork (a non-deterministic narration layer sits in tension with the
+determinism pitch), so it is Jeff's call, not a unilateral build. Do NOT start it
+without Jeff. If Jeff wants the voice layer: the recorded recommendation is
+narration-first (interpret the engine numbers, tailor by reader role), cached/pinned
+to the run-link token for graded-artifact stability, clearly labeled as the one
+non-reproducible layer; autofill (input-side parsing) is lower priority and only
+acceptable if parsed levers are shown and editable. If Jeff wants to DEFER the voice
+decision, available no-fork polish only (none load-bearing): a small UI surfacing of
+the v2 governing principle ("model only replicated effects at honest effect sizes"),
+or later-version held mechanisms (decoy tier, network effects, reciprocity, brand —
+all explicitly held, not greenlit). Otherwise the engine is stable; await direction.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits. GitHub: trzz333/customer-model — PUBLIC.
 - Vercel: live at customer-model.council.fyi; auto-deploys latest main on push.
   Runtime carries the retention schema-bump + teachable anchoring; engine 2.2.0.
-- Open Graph / social unfurl: NOT set up (the NEXT MOVE). layout.tsx has only
-  title+description; no og image asset anywhere in the repo.
+- Open Graph / social unfurl: SET UP (1d53911 + f3b4fc5). layout.tsx exports
+  metadataBase + openGraph + twitter; src/app/opengraph-image.png (1200x630) is the
+  single image source via Next's file convention (no openGraph.images, no public/).
+  Verified in built HTML. Image generator (off-repo): C:\Users\Public\cm_make_og.py.
 - Env vars: NO. v2 is key-free. @anthropic-ai/sdk present but unused (post-spine
   voice layer). lz-string@1.5.0 is the one runtime dep.
 
@@ -137,7 +126,11 @@ design-note-v2 §RESOLVED, and history.)
    The LinkedIn/career brief is kept OFF the repo (download artifact only).
 3. ENGINE VERSIONS: 2.0.0 logit core; 2.1.0 anchoring (anchor-off ≡ 2.0.0); 2.2.0
    peak-end (identity repWeights {0,0,0,1} ≡ 2.1.0). runLinkReproducesExactly()
-   suppresses the mismatch banner only for the 2.0.0↔2.1.0 anchor-off pair.
+   suppresses the mismatch banner only for the 2.0.0↔2.1.0 anchor-off pair. No 2.3.0:
+   the peak-end negative-peak refinement was tested (sweep-peakend-negpeak.ts) and
+   closed ADMISSIBLE-BUT-NOT-MATERIAL (G2 band caps the gain at 0.93 pt); 2.2.0 stays
+   champion. (Stale: design-note-v2 §2's anchoring "PENDING UI/run-link" line is
+   superseded — anchoring is fully wired incl. run-link persistence.)
 4. BUILD/VALIDATE: cmd shell (PowerShell word-splits && and git args). `npm run
    typecheck` (NOT npx tsc), then `npm run build`. Scoped git add, commit via
    `git commit -F C:\Users\Public\cm_commit.txt`, push. Sweeps/smoke run via

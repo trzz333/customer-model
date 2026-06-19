@@ -712,3 +712,38 @@ Save-button invariant re-confirmed intact (gated note is additive prose inside
 #result-printable; verdict/warnings untouched in WorldCard). Engine unchanged at 2.2.0.
 HEAD 00e90a9. NEXT MOVE set to the LinkedIn unfurl (OG metadata in root layout + a
 1200×630 app/opengraph-image.png, none exists yet).
+
+## 2026-06-19 — LinkedIn unfurl, crisp OG image, peak-end negative-peak test (resolved)
+
+Social unfurl shipped. The root layout (src/app/layout.tsx) previously exported
+only title + description, so customer-model.council.fyi returned "invalid link" on
+LinkedIn. Added metadataBase, an openGraph block (type website, url, siteName,
+title, description), and twitter summary_large_image. The OG image is a new
+src/app/opengraph-image.png (1200x630) via Next's file convention, so og:image and
+twitter:image are wired and made absolute automatically; openGraph.images was NOT
+passed (no public/og.png exists; that would 404). Verified og:*/twitter:* tags and
+the absolute image URL in the prerendered HTML; / build green, /opengraph-image.png
+registered as a route. Commit 1d53911.
+
+OG image crisp-fix. First render was built at 2x then downscaled, which
+double-filtered the antialiased text and read blurry after LinkedIn's JPEG
+recompression. Rerendered text/panels/chips at native resolution and supersampled
+only the curve layer (4x) before compositing: crisp title, smooth curves, 97 KB.
+Commit f3b4fc5. The generator lives at C:\Users\Public\cm_make_og.py (kept off the
+repo so the TS project gains no Pillow dependency). Image copy held to fact:
+deterministic, seeded, reproducible, auditable, open source; no users/revenue/team.
+
+Peak-end negative-peak test closed (parked item, design-note-v2 net-step 3). Built
+sweep-peakend-negpeak.ts: an asymmetric crater-only peak term, effPeak = 100 +
+kappa*dev for dev<0 (spikes untouched), kappa=1 nesting 2.2.0 byte-for-byte, coherent
+with the engine's loss aversion. G4 strengthens monotonically (margin 3.2 -> 4.13)
+but the G2 average-dominance band caps kappa at 1.31 (breaks at 1.32, dev 12.04 > 12),
+where the G4 gain is only 0.93 reputation point, under the 1.0-pt materiality bar set
+before running. Verdict ADMISSIBLE-BUT-NOT-MATERIAL: the band (not the evidence) sets
+the ceiling and the symmetric 2.2.0 peak already carries negative peaks, so 2.2.0
+stays champion, no version bump, sim.ts untouched. Commit 23df3c0.
+
+Confirmed in passing: anchoring's run-link persistence already shipped (business.ts
+encodes as/ar into the adv token, decode-clamped; engine + Teaching/Deep dial + Student
+teachable note all live), so design-note-v2 §2's "PENDING: UI exposure + run-link
+persistence" line is stale and superseded.
