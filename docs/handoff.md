@@ -19,31 +19,22 @@ exposure (Deep-dive control + run-link persistence) is the only piece of #2 stil
 pending; the engine is adv-drivable now.
 
 ## LAST COMMIT
-Anchoring engine challenger (ENGINE_VERSION 2.1.0). sim.ts gains anchorRound/
-anchorShift; the round loop adds a decaying anchorEffect to the judged price
-reference (effRefPrice = refPrice + anchorEffect, decay (1-refAdapt)^k), never
-written into refPrice, never touching real price/revenue, so anchor-off is
-byte-identical to 2.0.0. business.ts threads it via AdvOverride (anchorShift capped
-±20). sweep-anchor.ts is the pre-registered verifier (4/4 gates pass); tsconfig
-excludes it like smoke.ts. typecheck clean, build green, / at 25 kB. (Prior code
-commit this session: 679f13d retention vocabulary.) Re-confirm HEAD with git
+04945ac — feat: anchoring reference-price engine (ENGINE_VERSION 2.1.0); last CODE
+commit. Followed by 4f8d587 (AGENTS.md working agreement) and this handoff docs
+commit. typecheck clean, build green, / at 25 kB. Re-confirm HEAD with git
 rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
-Define one business in plain terms, run it across named customer worlds; engine
-2.1.0 (reference-dependent logit core + the new off-by-default anchoring frame) is a
-seeded agent-based Monte Carlo, lambda default 2.25, headline is a band. All v1
-surfaces live: per-world cards (verdict + warnings),
-cross-world A/B compare + inversion finder, within-world fragility sweep, seeded
-run-link, /glossary, per-round CSV, three depth tiers (Student / Teaching / Deep
-dive) with a Finance-focus toggle. The last code session (0ebaef3) was triage +
-hardening only, no engine change: fixed the per-world causal sentence that printed
-"Steady price" on a price cut (now reads the actual move), wired the reputation
-definition at
-its two bare Teaching sites (warning chip, "Lowest rep." label), corrected the
-"on hover" subhead to click/tap, gave the Term popover outside-click/scroll/Esc
-dismissal, and spelled out CAC in the LTV:CAC def. Save invariant confirmed
-holding (Term popover is no-print; chip + label text still print).
+Define one business in plain terms, run it across named customer worlds. Engine 2.1.0
+is a seeded agent-based Monte Carlo on a reference-dependent logit core (lambda 2.25,
+headline is a band), now with an off-by-default reference-price anchoring frame.
+v1 surfaces all live: per-world cards (verdict + warn.chips), cross-world A/B compare
++ inversion finder, within-world fragility sweep, seeded run-link, /glossary,
+per-round CSV, three depth tiers (Student / Teaching / Deep) with a Finance toggle.
+v2 so far: retention vocabulary is a single-source RETENTION_MECHANISMS table the
+form/teaching-prompt/glossary derive from; anchoring is engine-shipped and verified
+(sweep-anchor.ts, 4/4) but not yet user-reachable (adv-drivable only). UI (page.tsx)
+unchanged this session, so the save invariant is intact by construction.
 
 ## NEXT MOVE
 Two open threads, both mine to sequence. (a) FINISH anchoring's user-facing exposure:
@@ -62,8 +53,9 @@ authorization gate; just keep the champion-challenger discipline (bump, sweep, a
 - Local repo: YES, main, scoped commits.
 - GitHub: trzz333/customer-model — PUBLIC (so Professor Bonner can read it without
   an account; docs/ are world-visible). Pushed this session's docs + code commits.
-- Vercel: live at customer-model.council.fyi; auto-deploys latest main on push
-  (the retention-vocabulary code commit is the current deploy).
+- Vercel: live at customer-model.council.fyi; auto-deploys latest main on push.
+  Current runtime is engine 2.1.0 (anchoring present but off by default, so the live
+  site behaves exactly as before until the control ships).
 - Env vars: NO. v1 is key-free. @anthropic-ai/sdk present but unused (post-v1
   voice). lz-string@1.5.0 is the one runtime dep.
 
@@ -92,31 +84,33 @@ ENGINE_VERSION stamps every result. NO machine learning. ALWAYS PUSH.
   to the run-link. Still deferred and unbuilt.
 
 ## OPEN QUESTIONS
-1. NEXT-STEP FORK: RESOLVED. Jeff sent Bonner the live link + a repo-link
-   follow-up this session and called v2 as the next move. v2 it is.
-2. LLM voice: still "after v1" — whether it ships at all, narration vs autofill.
-3. v2 scope within the retention-vocabulary item (how many named mechanisms,
-   prose-only vs a small vocabulary layer) — Jeff's taste call.
-4. Minor copy (Jeff's eye): the "Student" tier label and the "Class prompt"
-   export checkbox label.
+1. LLM voice — the one genuine product/values fork left. A non-deterministic narration
+   layer sits in tension with the tool's determinism pitch, so before building it I
+   want Jeff's read on whether it ships at all and narration vs autofill. Absent input,
+   I proceed with the recorded recommendation: narration-first, deferred, cached/pinned
+   to the run-link, clearly labelled as the one non-reproducible layer.
+   (The old v2-scope and tier-copy forks are now Claude's calls under AUTONOMY, not
+   open questions; Bonner outreach already done.)
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
-   #result-printable; verdict + warning chips carry NO export class and NO
-   toggle, so they survive every saved copy by construction; details.numbers
-   force-opened into both saved paths. CONFIRMED HOLDING this session: the new
-   reputation Term and popover-dismissal changes left it intact (only the Term
-   popover carries no-print, so each chip/label still prints its full text).
-2. REPO IS PUBLIC (new this session). docs/handoff, history, plan are
+   #result-printable; verdict + warning chips carry NO export class and NO toggle, so
+   they survive every saved copy by construction; details.numbers force-opened into
+   both saved paths. INTACT this session by construction: page.tsx + globals.css were
+   not touched, so nothing could regress it. Re-confirm on any page.tsx change.
+2. REPO IS PUBLIC. docs/handoff, history, plan, design-note, AGENTS.md are
    world-visible; history.md carries some Vercel IDs + a gmail (Jeff accepted
    this knowingly). No keys anywhere in the repo; keep secrets in env only.
-3. ALWAYS PUSH (standing). This session: 0ebaef3 (triage/hardening) + this docs
-   commit.
+3. ALWAYS PUSH (standing). This session pushed: 187e4e4 (v2 research), 4477100
+   (design note), 679f13d (retention vocabulary), 04945ac (anchoring engine 2.1.0),
+   4f8d587 (AGENTS.md), + this handoff commit.
 4. BUILD QUIRK: a bare `npm install <pkg>` PRUNES devDependencies and breaks the
    build; restore with `npm install --include=dev`. Validate: cmd shell,
    `npm run typecheck` (NOT npx tsc), `npm run build`, scoped git add, commit
    via `git commit -F <file>` (PowerShell word-splits inline -m and mangles ;),
    push. typescript pinned 5.8.2.
-5. TERM DEFS SINGLE SOURCE: plain defs live ONCE — TERM_DEFS + ARCH_DEF in
+5. SINGLE SOURCE OF TRUTH: plain defs live ONCE — TERM_DEFS + ARCH_DEF in
    business.ts; page.tsx aliases TERM_DEFS as DEF and imports ARCH_DEF;
-   /glossary derives from GLOSSARY + ARCHETYPES. Edit once.
+   /glossary derives from GLOSSARY + ARCHETYPES. Retention words live ONCE in
+   RETENTION_MECHANISMS (business.ts); FIELDS, RET_DESC, and GLOSSARY derive from it.
+   Edit once.

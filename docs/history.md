@@ -543,3 +543,45 @@ Jeff performed the visibility-change clicks himself (access-control change);
 Claude drove to the Danger Zone and verified the Public badge afterward. docs/
 are now world-visible; history.md carries Vercel IDs + a gmail, accepted
 knowingly. No keys in the repo.
+
+## 2026-06-19 — v2 opens: research persisted, mechanisms #1 and #2 (resolved)
+
+A long session that moved v2 from planning into build. Resolved detail, evicted
+so handoff.md stays terse:
+
+- v2 research persisted. The marketing-psych dive (priming refused as a mechanic;
+  anchoring lead candidate; peak-end the novel real addition; defaults/nudges
+  contested; scarcity/endowment skipped as double-counts) was written into
+  plan.md as the V2 MARKETING-PSYCHOLOGY RESEARCH section, with the design spine
+  (model only what replicates, at honest sizes, and say so). Commit 187e4e4.
+- Design note written (docs/design-note-v2.md), commit 4477100. Specced the first
+  three mechanisms with pre-registered sweeps. Anchoring verified robust vs Many
+  Labs 1 with the estimation-vs-WTP nuance; decoy/asymmetric-dominance flagged as
+  the fragile branch (Frederick/Lee/Baskin, Yang/Lynn) and held; peak-end's naive
+  form rejected for extended experiences (a 2019 VR study; McCullough et al. 2024
+  hotel field study) in favour of a conservative average-plus-corrections form.
+- Mechanism #1 retention vocabulary shipped, commit 679f13d. Prior-art reconciled:
+  the Retention enum (none/loyalty/lockin/promo → friction/promo) already existed,
+  so this is a single-source RETENTION_MECHANISMS table over the existing enum
+  owning the WORDS (label, note, mechanism name, phrase, glossary def); the NUMBERS
+  stay in businessToCfg. FIELDS, RET_DESC, and GLOSSARY derive from it. Lock-in def
+  discloses the contract/switching-cost conflation. Habit/inertia named where it
+  lives (the inertial archetype), not faked as a lever; default/auto-renew + the
+  lock-in split deferred to a versioned schema bump.
+- Mechanism #2 anchoring engine shipped + verified, commit 04945ac, ENGINE_VERSION
+  bumped 2.0.0 → 2.1.0. A per-round anchorEffect lifts the judged price reference
+  (effRefPrice = refPrice + anchorEffect, decay (1-refAdapt)^k), never written into
+  refPrice, never touching real price/revenue, so anchor-off is byte-identical to
+  2.0.0 (default revenue still 1771114). Threaded via AdvOverride.anchorShift
+  (clamped ±20). sweep-anchor.ts is the pre-registered verifier and passes 4/4:
+  off-path identity, monotonic headroom (keep 59→82 as shift 0→25), decays back
+  (no permanent lift), floors on a catastrophe build (+17.6 vs −1.1 keep). tsconfig
+  excludes the sweep like smoke.ts.
+- Standing decisions set by Jeff this session: engine freeze LIFTED permanently
+  (Claude versions sim.ts without per-edit authorization, champion-challenger kept);
+  Claude owns all engineering AND engineering-adjacent calls including parked taste
+  forks; prior-art-first always. AGENTS.md added (commit 4f8d587) as the portable
+  working agreement carrying these.
+- The two design-note taste forks (named retention mechanisms in Student tier or
+  only Teaching/Deep dive; anchoring lever faculty-only vs student-visible) are now
+  Claude's calls under the autonomy decision, no longer open Jeff questions.
