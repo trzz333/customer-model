@@ -536,7 +536,7 @@ export interface RunLinkState {
   compare: boolean;
   fragility: boolean;
   selected: Record<string, boolean>;
-  adv: { rounds: number; lossAversion: number; difficulty: Difficulty };
+  adv: { rounds: number; lossAversion: number; difficulty: Difficulty; anchorShift: number; anchorRound: number };
   fin: FinanceInput;
 }
 export interface DecodedRunLink {
@@ -582,7 +582,13 @@ export function encodeRunLink(s: RunLinkState): string {
     fr: s.fragility ? 1 : 0,
     bb: s.compare ? enc(s.bizB) : undefined,
     w: WORLDS.filter((w) => s.selected[w.key]).map((w) => w.key),
-    a: { r: s.adv.rounds, l: s.adv.lossAversion, d: s.adv.difficulty },
+    // Anchor fields are emitted ONLY when the frame is on, so an anchor-off run
+    // produces a byte-identical token to the pre-2.1.0 schema (and to every link
+    // shared before the control existed). A decoder treats their absence as off.
+    a: {
+      r: s.adv.rounds, l: s.adv.lossAversion, d: s.adv.difficulty,
+      ...(s.adv.anchorShift !== 0 ? { as: s.adv.anchorShift, ar: s.adv.anchorRound } : {}),
+    },
     f: s.fin.launchPrice > 0
       ? { lp: s.fin.launchPrice, mp: s.fin.marginPct, c: s.fin.cac, dp: s.fin.discountPct }
       : undefined,
@@ -626,10 +632,16 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
     }
 
     const a = (raw.a ?? {}) as Record<string, unknown>;
+    const advRounds = clampInt(a.r, 10, 80, 40);
     const adv = {
-      rounds: clampInt(a.r, 10, 80, 40),
+      rounds: advRounds,
       lossAversion: clampNum(a.l, 1, 3.5, 2.25),
       difficulty: pick(DIFFS, a.d, "normal" as Difficulty),
+      // Mirror the businessToCfg input-layer clamps: shift ±20 (a framing nudge,
+      // not a free discount), start round within the link's own horizon. Absent
+      // fields (every pre-2.1.0 / anchor-off link) decode to a 0 = off frame.
+      anchorShift: clampNum(a.as, -20, 20, 0),
+      anchorRound: clampInt(a.ar, 0, advRounds, 0),
     };
 
     const f = (raw.f ?? null) as Record<string, unknown> | null;
@@ -658,6 +670,22 @@ function clampNum(v: unknown, lo: number, hi: number, fb: number): number {
 }
 function clampInt(v: unknown, lo: number, hi: number, fb: number): number {
   return Math.round(clampNum(v, lo, hi, fb));
+}
+
+// Whether a decoded link reproduces EXACTLY on the reader's engine, so the UI can
+// suppress a spurious "engine mismatch" banner when the result is provably identical.
+// Same version: always exact. Cross-version: only the 2.0.0 <-> 2.1.0 pair is
+// result-identical, and only when the link's anchor frame is off — 2.1.0's sole
+// delta from 2.0.0 is the reference-price path, which is inert at anchorShift 0
+// (the off-path-identity gate in sweep-anchor.ts). Every other version gap (e.g. a
+// future reputation-memory bump) changes the numbers and MUST surface. Conservative
+// by default: unknown pairs are treated as NOT reproducing, so the banner shows.
+export function runLinkReproducesExactly(decoded: DecodedRunLink, currentEngine: string): boolean {
+  const authored = decoded.engineVersion;
+  if (authored === currentEngine) return true;
+  const pair = new Set([authored, currentEngine]);
+  const isAnchorPair = pair.size === 2 && pair.has("2.0.0") && pair.has("2.1.0");
+  return isAnchorPair && decoded.state.adv.anchorShift === 0;
 }
 
 

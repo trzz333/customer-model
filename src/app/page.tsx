@@ -34,6 +34,7 @@ import {
   DIFFICULTY_NOTE,
   encodeRunLink,
   decodeRunLink,
+  runLinkReproducesExactly,
   type Difficulty,
   type BizInput,
   type CustomerWorld,
@@ -446,7 +447,7 @@ function FragilityBlock({ frags }: { frags: FragilityResult[] }) {
 const DEFAULT_BIZ: BizInput = { ...EXAMPLES[0] };
 const DEFAULT_BIZ_B: BizInput = { ...EXAMPLES[1] };
 const DEFAULT_SELECTED: Record<string, boolean> = { mainstream: true, fickle: true, loyal: true, skeptic: false, grudge: false };
-const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Difficulty };
+const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Difficulty, anchorShift: 0, anchorRound: 0 };
 const DEFAULT_FIN: FinanceInput = { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
 const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: true, finance: true, fragility: true, methodology: true };
 
@@ -473,9 +474,13 @@ export default function Page() {
   const deep = view === "deep";                            // behavioral-econ veteran: λ + cited methodology
   const hasControls = view === "teaching" || view === "deep";  // any professor mode: dials + finance + export
   const financeLed = hasControls && emphasis === "finance";
+  // Reference-price frame provenance for the run header, so a saved/shared copy
+  // records that a non-default frame was in play (the result already reflects it).
+  const anchorOn = ran.adv.anchorShift > 0;
+  const anchorTag = anchorOn ? ` · ref +${ran.adv.anchorShift}@r${ran.adv.anchorRound}` : "";
 
   const derived = useMemo(() => {
-    const advEng = { rounds: ran.adv.rounds, lossAversion: ran.adv.lossAversion, noise: DIFFICULTY_NOISE[ran.adv.difficulty] };
+    const advEng = { rounds: ran.adv.rounds, lossAversion: ran.adv.lossAversion, noise: DIFFICULTY_NOISE[ran.adv.difficulty], anchorShift: ran.adv.anchorShift, anchorRound: ran.adv.anchorRound };
     const chosen = WORLDS.filter((w) => ran.selected[w.key]);
     const sweeps = chosen.map((world) => sweepWorld(ran.biz, world, advEng));
     let synth = "";
@@ -521,7 +526,10 @@ export default function Page() {
     setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
     setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
     setView("student");   // a shared link is a finished artifact; open it in the clean read, not the configurer's controls
-    if (decoded.engineVersion !== ENGINE_VERSION) setLoadedEngine(decoded.engineVersion);
+    // Surface an engine mismatch ONLY when the result would actually differ. An
+    // anchor-off 2.0.0 link reproduces byte-for-byte on 2.1.0 (off-path identity),
+    // so warning on it would be a false alarm; runLinkReproducesExactly gates that.
+    if (!runLinkReproducesExactly(decoded, ENGINE_VERSION)) setLoadedEngine(decoded.engineVersion);
   }, []);
 
   // Copy a link that reproduces the DISPLAYED run (ran), not the live inputs.
@@ -730,6 +738,21 @@ export default function Page() {
                 <p className="text-xs text-muted-fg mt-1.5 leading-snug">{DIFFICULTY_NOTE[adv.difficulty]} This is the randomness knob; it also widens the run-to-run band.</p>
               </div>
 
+              <div className="mt-4 border-t border-card-border pt-3">
+                <div className="text-xs uppercase tracking-wider font-semibold text-muted-fg mb-1.5">Reference-price framing</div>
+                <AdvSlider label={'"Was $X" reference lift'} value={adv.anchorShift} min={0} max={20} step={1}
+                  onChange={(v) => setAdv((a) => ({ ...a, anchorShift: Math.round(v) }))}
+                  format={(v) => (v === 0 ? "off" : `+${v} pts`)} />
+                {adv.anchorShift > 0 && (
+                  <AdvSlider label="Frame starts at round" value={Math.min(adv.anchorRound, adv.rounds)} min={0} max={adv.rounds} step={1}
+                    onChange={(v) => setAdv((a) => ({ ...a, anchorRound: Math.round(v) }))}
+                    format={(v) => `r${v}`} />
+                )}
+                <p className="text-xs text-muted-fg mt-1.5 leading-snug">
+                  An external &quot;was $X&quot; list price lifts the point customers <i>judge</i> against, so the same real price reads as a smaller loss. Real price and revenue are unchanged; the frame fades as expectations re-anchor. The robust marketing form of anchoring (not the contested decoy effect). Off at 0.
+                </p>
+              </div>
+
               {deep && (
                 <details className="mt-4 border-t border-card-border pt-3">
                   <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Advanced — engine parameters</summary>
@@ -791,11 +814,11 @@ export default function Page() {
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
               <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
               {deep ? (
-                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · {DIFFICULTY_LABEL[ran.adv.difficulty]} · engine {ENGINE_VERSION}</span>
+                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · {DIFFICULTY_LABEL[ran.adv.difficulty]}{anchorTag} · engine {ENGINE_VERSION}</span>
               ) : view === "teaching" ? (
-                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · {DIFFICULTY_LABEL[ran.adv.difficulty]} · engine {ENGINE_VERSION}</span>
+                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · {DIFFICULTY_LABEL[ran.adv.difficulty]}{anchorTag} · engine {ENGINE_VERSION}</span>
               ) : (
-                <span className="text-sm text-muted-fg">Tested across {derived.sweeps.length} customer world{derived.sweeps.length === 1 ? "" : "s"} over {ran.adv.rounds} rounds</span>
+                <span className="text-sm text-muted-fg">Tested across {derived.sweeps.length} customer world{derived.sweeps.length === 1 ? "" : "s"} over {ran.adv.rounds} rounds{anchorOn ? " · reference-price frame on" : ""}</span>
               )}
             </div>
             <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
