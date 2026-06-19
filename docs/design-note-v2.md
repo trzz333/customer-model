@@ -31,39 +31,40 @@ honest (often smaller) sizes, and say so in the UI. Selectivity is the pitch.
    reassert.
 
 ## 1. RETENTION VOCABULARY (prose layer, resolves to existing knobs)
-Status: named-only, no engine math. Touches nothing in sim.ts; it is a labeling
-and routing layer over the existing `friction` scalar and `promo` flag.
+Status: SHIPPED (prose/data layer, no engine math). Touches nothing in sim.ts.
 
-The four named mechanisms and their honest mapping:
-- Switching cost: real money or effort to leave (data export, re-setup,
-  cancellation fee). Resolves to higher `friction`. The honest case where friction
-  genuinely IS the mechanism.
-- Contractual lock-in: a term commitment (annual contract, early-termination fee).
-  Also resolves to `friction`, but named separately because the student lever is
-  legal/structural rather than experiential, and it lands on the grudger archetype
-  differently (resented, not unnoticed).
-- Habit / inertia: staying because leaving requires a decision the customer never
-  gets around to making. Resolves to `friction` numerically, but it is explicitly
-  NOT a cost, and the prose must say so, because calling inertia a "cost" is the
-  exact conflation the parking-lot note warns against.
-- Default / auto-renew: retention by making continuation the no-action path. This
-  is the one that is NOT friction. It works via inertia plus implicit endorsement
-  (Thaler/Sunstein), hits the inertial archetype, and unlike a switching cost
-  breeds no grudger backlash. It resolves to a modest `promo`-adjacent nudge and
-  carries the contested-evidence flag below.
+PRIOR-ART RECONCILIATION (found at build time): the retention lever already exists.
+business.ts has a `Retention` enum (none | loyalty | lockin | promo), a four-option
+form question, and a `businessToCfg` mapping to friction/promo (none 18, loyalty 45,
+lockin 72 "high switching cost", promo 32 + promoActive). So this is NOT a greenfield
+table; the four options are already there and already resolve to the knobs. The note's
+original four names (switching cost, contractual lock-in, habit/inertia, default/
+auto-renew) did not line up with the existing enum, and two of them would need a new
+enum value + cfg mapping + run-link schema bump, i.e. NOT prose-only. Reconciled build:
 
-Honesty in the UI: the layer states which knob each label resolves to and that the
-engine does not distinguish the four mechanically in this version (they move the
-same one or two knobs). Default/auto-renew additionally carries the nudge caveat:
-meta-estimates are contested (Mertens 2022 d about 0.43 vs Maier 2022 PNAS, a null
-after publication-bias correction with only finance-domain nudges surviving), so
-the lever is sized small and labeled as contested.
+What shipped: a single-source `RETENTION_MECHANISMS` table in business.ts keyed to the
+EXISTING enum. It owns the WORDS only (label, under-option note, mechanism name,
+in-sentence phrase, plain def); the friction/promo NUMBERS stay solely in
+businessToCfg. FIELDS (the form), RET_DESC (teaching prompt), and GLOSSARY all derive
+from it, so the retention vocabulary lives once. Honest naming of the four existing
+options: No retention play; Loyalty / earned reward (moderate friction); Lock-in
+(contract + switching cost), whose def DISCLOSES that contract and switching cost are
+two different real mechanisms the engine collapses into one high-friction knob;
+Standing discount (moderate friction + promo, with the margin-leak caveat). No enum,
+cfg, run-link, or engine change; build green at / 24.9 kB.
 
-Shape (mirrors TERM_DEFS, single source): a `RETENTION_MECHANISMS` table in
-business.ts, each entry roughly { id, label, plain, resolvesTo:
-'friction' | 'promo' | 'none', inEngine: false, caveat? }. page.tsx and /glossary
-both read it. No new runtime dep, no engine touch. Save-invariant unaffected: it is
-prose that prints with the rest of the result.
+What was corrected vs the original note:
+- Habit / inertia is NOT a business retention play in this engine. It already exists
+  on the CUSTOMER side as the `inertial` archetype. Offering it as a fourth lever
+  would be a category error; the vocabulary names it in the right place instead.
+- Default / auto-renew is a genuinely new mechanism the lever does not carry. It is a
+  distinct inertia-plus-endorsement nudge, not "more friction" and not the same as the
+  standing promo. It is DEFERRED to a versioned step (new enum value + cfg mapping +
+  run-link schema v2), carrying the contested-nudge caveat (Mertens 2022 d about 0.43
+  vs Maier 2022 PNAS null after publication-bias correction).
+- Splitting Lock-in into separate "contract" and "switching cost" options is the same
+  kind of schema-bump step, deferred. For now the conflation is disclosed in prose
+  rather than faked apart.
 
 ## 2. ANCHORING / REFERENCE PRICE (versioned engine mechanism, LEAD challenger)
 Evidence posture (verified this session): estimation anchoring is robust (Many
@@ -130,12 +131,15 @@ weight flips a verdict on a flat series, it is oversized. Default weights are se
 the sweep, not by eye (engine-evolution policy: no eyeballing one scenario).
 
 ## SEQUENCING
-Ship order: (1) retention vocabulary, since it is prose-only, key-free, touches no
-engine, and directly answers the under-theorized-retention critique; (2) anchoring
+Ship order: (1) retention vocabulary — DONE (single-source RETENTION_MECHANISMS
+table over the existing enum; prose/data only, build green). (2) anchoring
 reference-price as the first ENGINE_VERSION challenger, gated on its sweep;
-(3) peak-end memory as the second challenger. Decoy tier and the held mechanisms
-(network effects, reciprocity, brand) are later-version candidates. Each engine
-challenger is a version bump, old version archived, rollback via git.
+(3) peak-end memory as the second challenger. The deferred retention schema-bump
+(default/auto-renew as a new lever, and splitting lock-in into contract vs switching
+cost) is a smaller versioned step that can land before or after anchoring. Decoy
+tier and the held mechanisms (network effects, reciprocity, brand) are later-version
+candidates. Each engine challenger is a version bump, old version archived, rollback
+via git.
 
 ## OPEN (genuinely Jeff's taste, not mine to settle)
 - Whether the named retention mechanisms surface in the Student tier or only in

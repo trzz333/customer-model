@@ -53,6 +53,47 @@ export interface FieldOpt { v: string; t: string; note?: string }
 export type LeverKey = "price" | "value" | "retention" | "threat";
 export interface Field { key: LeverKey; q: string; opts: FieldOpt[] }
 
+// ── Retention vocabulary (names the real mechanism behind the lever) ──
+// v2 retention-vocabulary layer. The four retention OPTIONS already exist as the
+// `Retention` enum and resolve to the engine's friction/promo knobs in
+// businessToCfg (which stays the single source of the NUMBERS). This table is the
+// single source of the WORDS: each option's student label, its under-option note,
+// the named real-world mechanism, an in-sentence phrase for the teaching prompt,
+// and a plain definition that is honest about what the engine does and does NOT
+// separate. It adds no lever and touches no engine math; it only names, defines,
+// and routes text that used to live inline in FIELDS and RET_DESC.
+//
+// Two real retention drivers are deliberately NOT options here, and the prose says
+// so rather than faking them: habit/inertia is modelled on the CUSTOMER side as the
+// `inertial` archetype, not as a business play; and a default / auto-renew lever
+// (retention by making continuation the no-action path) is a distinct mechanism the
+// engine does not yet carry. Adding it is a versioned change (new enum value + cfg
+// mapping + run-link schema bump), tracked in docs/design-note-v2.md, not smuggled
+// in here.
+export interface RetentionMechanism {
+  key: Retention;
+  label: string;   // student-facing option label (the form radio)
+  note: string;    // short under-option note
+  phrase: string;  // lowercase in-sentence phrase for the teaching prompt
+  term: string;    // mechanism name for the glossary
+  def: string;     // plain definition, honest about the friction/promo knob
+}
+
+export const RETENTION_MECHANISMS: RetentionMechanism[] = [
+  { key: "none", label: "Nothing in particular", note: "nothing holds them in",
+    phrase: "no special way to keep them", term: "No retention play",
+    def: "Nothing structural keeps customers in; they stay only while the deal and the experience hold up. In the model this is the lowest friction setting." },
+  { key: "loyalty", label: "Loyalty rewards", note: "earn-over-time perk",
+    phrase: "loyalty rewards", term: "Loyalty / earned reward",
+    def: "A perk that builds up the longer someone stays (points, status, a punch-card), raising the cost of walking away from banked value. The model treats it as moderate friction, not a separate loyalty dynamic." },
+  { key: "lockin", label: "A contract or lock-in", note: "contract and/or switching cost",
+    phrase: "a lock-in contract", term: "Lock-in (contract + switching cost)",
+    def: "Two different real mechanisms bundled together: a contractual term you cannot easily exit, and the switching cost of leaving (re-setup, data export, fees). The model treats both as the same high-friction knob and does not tell them apart." },
+  { key: "promo", label: "A standing discount/promo", note: "defends churn, leaks margin",
+    phrase: "a standing promo", term: "Standing discount",
+    def: "An ongoing price concession that keeps price-sensitive customers from leaving. It defends churn but bleeds margin, and deal-chasers milk it. In the model it is moderate friction plus an active promo." },
+];
+
 // ── The plain-language business questions (the front door) ───────────
 export const FIELDS: Field[] = [
   { key: "price", q: "What are you doing with price?", opts: [
@@ -64,11 +105,8 @@ export const FIELDS: Field[] = [
     { v: "premium", t: "Clearly better than rivals" },
     { v: "par", t: "About the same" },
     { v: "thin", t: "Stretched thin / cutting corners" } ] },
-  { key: "retention", q: "What keeps customers from leaving?", opts: [
-    { v: "none", t: "Nothing in particular" },
-    { v: "loyalty", t: "Loyalty rewards", note: "earn-over-time perk" },
-    { v: "lockin", t: "A contract or lock-in", note: "high switching cost" },
-    { v: "promo", t: "A standing discount/promo", note: "defends churn, leaks margin" } ] },
+  { key: "retention", q: "What keeps customers from leaving?",
+    opts: RETENTION_MECHANISMS.map((m) => ({ v: m.key, t: m.label, note: m.note })) },
   { key: "threat", q: "What's the competitive threat?", opts: [
     { v: "none", t: "No real threat right now" },
     { v: "mild", t: "A cheaper option exists", note: "enters later, soft lure" },
@@ -108,6 +146,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: "Customer worlds", def: TERM_DEFS.worlds },
   { term: "Churn", def: TERM_DEFS.churn },
   { term: "Retention", def: TERM_DEFS.retention },
+  ...RETENTION_MECHANISMS.filter((m) => m.key !== "none").map((m) => ({ term: m.term, def: m.def })),
   { term: "Reputation", def: TERM_DEFS.reputation },
   { term: "Tipping point", def: TERM_DEFS.tipping },
   { term: "Loss aversion", def: TERM_DEFS.loss },
@@ -366,7 +405,9 @@ export function unitEconomics(cfg: SimConfig, r: SimResult): string {
 // ── Teaching prompt: drives a one-lever A/B by hand (the assignment hook) ──
 const PRICE_DESC: Record<PriceMove, string> = { cut: "cut prices to compete", hold: "hold prices steady", raiseS: "raise prices a little", raiseB: "raise prices sharply" };
 const COUNTER: Record<PriceMove, string> = { cut: "hold price instead of cutting", hold: "raise price a little", raiseS: "hold price and lean on your retention play instead", raiseB: "hold price and lean on your retention play instead" };
-const RET_DESC: Record<Retention, string> = { none: "no special way to keep them", loyalty: "loyalty rewards", lockin: "a lock-in contract", promo: "a standing promo" };
+const RET_DESC: Record<Retention, string> = Object.fromEntries(
+  RETENTION_MECHANISMS.map((m) => [m.key, m.phrase]),
+) as Record<Retention, string>;
 
 export function teachingPrompt(biz: BizInput, worlds: CustomerWorld[], lambda = 2.25): string {
   const a = [...worlds].sort((x, y) => y.presentBias - x.presentBias)[0];

@@ -10,20 +10,20 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 CLOSED and hardened; v2 PLANNING done, build not yet started. External-audit
-triage (Antigravity coverage docs + a fresh professor-persona tester) is done: the
-real coverage/wiring gaps are fixed and the tester artifacts rejected with reasons.
-This session was research + spec only, no code: the marketing-psych research is
-persisted into plan.md and the first three v2 mechanisms are specced with verifying
-sweeps in docs/design-note-v2.md. Engine frozen, v1 untouched. Next session builds
-mechanism #1 (retention vocabulary).
+v1 CLOSED and hardened; v2 BUILD started. Mechanism #1 (retention vocabulary)
+shipped this session: a single-source RETENTION_MECHANISMS table over the existing
+Retention enum, prose/data only, engine untouched. The marketing-psych research is
+in plan.md and the three v2 mechanisms are specced with verifying sweeps in
+docs/design-note-v2.md (its §1 now records the prior-art reconciliation).
 
 ## LAST COMMIT
-Docs-only this session (v2 research persisted to plan.md + design-note-v2.md
-added; handoff updated). Last CODE commit is still 0ebaef3 — fix: honest narrative
-on a price cut + reputation/copy wiring; typecheck clean, build green, / at
-24.4 kB. v1 engine untouched since. Re-confirm HEAD with git rev-parse; don't trust
-a hardcoded hash.
+This session: a v2 docs commit (research → plan.md, design-note-v2.md added) then a
+CODE commit shipping mechanism #1, the retention vocabulary: a single-source
+RETENTION_MECHANISMS table in business.ts keyed to the existing Retention enum,
+owning the retention WORDS (label, note, mechanism name, phrase, glossary def) while
+the friction/promo NUMBERS stay in businessToCfg. FIELDS, RET_DESC, and GLOSSARY all
+derive from it. typecheck clean, build green, / at 24.9 kB. Engine (sim.ts)
+untouched. Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds; engine
@@ -41,24 +41,25 @@ dismissal, and spelled out CAC in the LTV:CAC def. Save invariant confirmed
 holding (Term popover is no-print; chip + label text still print).
 
 ## NEXT MOVE
-Build v2 mechanism #1 per docs/design-note-v2.md: the RETENTION VOCABULARY as a
-small typed layer (`RETENTION_MECHANISMS` in business.ts, mirroring TERM_DEFS),
-naming four mechanisms (switching cost, contractual lock-in, habit/inertia,
-default/auto-renew) that resolve to the existing friction/promo knobs and say so
-in the prose. Prose-only, key-free, NO engine touch; page.tsx + /glossary read the
-table. Then the two engine challengers in order: anchoring reference-price, then
-peak-end memory, each a versioned ENGINE_VERSION bump gated on the pre-registered
-sweep written into the design note. Do NOT shoehorn nudges into friction; the
-default/auto-renew label is promo-adjacent and carries the contested-nudge caveat.
-Research + verdicts live in plan.md; the build spec + sweeps live in
-design-note-v2.md.
+Mechanism #1 (retention vocabulary) is shipped. Next, per docs/design-note-v2.md §2,
+is ANCHORING reference-price as the FIRST ENGINE_VERSION challenger: let a business
+action shift the value-function reference point WITHOUT moving real price (a "was $X"
+reference), decaying back over a few rounds, with the pre-registered sweep in the
+note (monotonic shift on a headroom build, decays back, floors on a maximal-stress
+build; FAIL if a one-time reference makes a permanent non-decaying lift). This DOES
+touch sim.ts, so it is a deliberate versioned bump: bump ENGINE_VERSION, archive the
+old, run the sweep before promoting. The decoy/asymmetric-dominance branch stays
+held (contested per Frederick/Lee/Baskin, Yang/Lynn). A smaller parallel option is
+the deferred retention schema-bump (default/auto-renew as a new lever; splitting
+lock-in into contract vs switching cost), also a versioned change (enum + cfg +
+run-link schema v2). Engine still frozen until Jeff authorizes the sim.ts edit.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
-- GitHub: trzz333/customer-model — now PUBLIC (flipped this session so Professor
-  Bonner can read it without an account; docs/ are world-visible now). Pushed
-  0ebaef3 + this docs commit.
-- Vercel: live at customer-model.council.fyi; auto-deploying 0ebaef3.
+- GitHub: trzz333/customer-model — PUBLIC (so Professor Bonner can read it without
+  an account; docs/ are world-visible). Pushed this session's docs + code commits.
+- Vercel: live at customer-model.council.fyi; auto-deploys latest main on push
+  (the retention-vocabulary code commit is the current deploy).
 - Env vars: NO. v1 is key-free. @anthropic-ai/sdk present but unused (post-v1
   voice). lz-string@1.5.0 is the one runtime dep.
 
