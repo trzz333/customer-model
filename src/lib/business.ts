@@ -37,6 +37,8 @@ export interface AdvOverride {
   lossAversion?: number;
   noise?: number;
   seed?: number;
+  anchorShift?: number;   // reference-price frame: points the judged reference is lifted (0 = off)
+  anchorRound?: number;   // round the frame starts (0 = from launch)
 }
 
 export interface CustomerWorld {
@@ -236,6 +238,11 @@ export function businessToCfg(biz: BizInput, world: CustomerWorld, adv?: AdvOver
   if (adv?.lossAversion !== undefined) c.lossAversion = adv.lossAversion;
   if (adv?.noise !== undefined) c.noise = adv.noise;
   if (adv?.seed !== undefined) c.seed = adv.seed;
+  // Reference-price frame: cap the magnitude so it stays a framing nudge, not a free
+  // discount (the robust effect is the framing). Engine itself is uncapped; the cap
+  // is an input-layer policy that the run-link decode will mirror.
+  if (adv?.anchorShift !== undefined) c.anchorShift = Math.max(-20, Math.min(20, adv.anchorShift));
+  if (adv?.anchorRound !== undefined) c.anchorRound = Math.max(0, Math.min(c.rounds, Math.round(adv.anchorRound)));
   return c;
 }
 

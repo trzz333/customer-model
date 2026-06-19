@@ -67,6 +67,20 @@ What was corrected vs the original note:
   rather than faked apart.
 
 ## 2. ANCHORING / REFERENCE PRICE (versioned engine mechanism, LEAD challenger)
+STATUS: engine SHIPPED as ENGINE_VERSION 2.1.0 and VERIFIED. sim.ts adds anchorRound/
+anchorShift: an additive anchorEffect lifts the JUDGED reference (effRefPrice =
+refPrice + anchorEffect), decaying at (1-refAdapt)^k, never written into refPrice and
+never touching real price/revenue. Driven via AdvOverride.anchorShift (capped to ±20
+in businessToCfg). The pre-registered sweep (sweep-anchor.ts) passes all four gates:
+(1) off-path identity — anchor off reproduces 2.0.0 default revenue 1771114 exactly;
+(2) monotonic headroom — keep climbs 59→82 as shift 0→25 on a hike build; (3) decays
+back — frame ~1% by +16 rounds, late-run churn equal with/without (no permanent lift);
+(4) floors on stress — +17.6 keep on a headroom build vs −1.1 on a catastrophe build.
+PENDING (next): UI exposure (a Deep-dive control; my call is Teaching/Deep-dive, not the
+default Student read) and run-link persistence (add anchorShift/anchorRound to the adv
+token, backward-compatible, decode-clamped). Until then it is engine-ready and
+adv-drivable but not user-reachable.
+
 Evidence posture (verified this session): estimation anchoring is robust (Many
 Labs 1 replicated it stronger than the original Jacowitz-Kahneman 1995 effect). The
 reference-price application (an external "was $X" reference shifting the perceived

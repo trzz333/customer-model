@@ -10,25 +10,30 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 CLOSED and hardened; v2 BUILD started. Mechanism #1 (retention vocabulary)
-shipped this session: a single-source RETENTION_MECHANISMS table over the existing
-Retention enum, prose/data only, engine untouched. The marketing-psych research is
-in plan.md and the three v2 mechanisms are specced with verifying sweeps in
-docs/design-note-v2.md (its §1 now records the prior-art reconciliation).
+v1 CLOSED; v2 BUILD underway. Mechanism #1 (retention vocabulary) shipped. Mechanism
+#2 (anchoring / reference-price framing) ENGINE shipped + verified this session as
+ENGINE_VERSION 2.1.0: a decaying anchorEffect lifts the judged reference without
+moving real price; the pre-registered sweep (sweep-anchor.ts) passes all four gates.
+Engine freeze is LIFTED (standing permission from Jeff). Anchoring's user-facing
+exposure (Deep-dive control + run-link persistence) is the only piece of #2 still
+pending; the engine is adv-drivable now.
 
 ## LAST COMMIT
-This session: a v2 docs commit (research → plan.md, design-note-v2.md added) then a
-CODE commit shipping mechanism #1, the retention vocabulary: a single-source
-RETENTION_MECHANISMS table in business.ts keyed to the existing Retention enum,
-owning the retention WORDS (label, note, mechanism name, phrase, glossary def) while
-the friction/promo NUMBERS stay in businessToCfg. FIELDS, RET_DESC, and GLOSSARY all
-derive from it. typecheck clean, build green, / at 24.9 kB. Engine (sim.ts)
-untouched. Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
+Anchoring engine challenger (ENGINE_VERSION 2.1.0). sim.ts gains anchorRound/
+anchorShift; the round loop adds a decaying anchorEffect to the judged price
+reference (effRefPrice = refPrice + anchorEffect, decay (1-refAdapt)^k), never
+written into refPrice, never touching real price/revenue, so anchor-off is
+byte-identical to 2.0.0. business.ts threads it via AdvOverride (anchorShift capped
+±20). sweep-anchor.ts is the pre-registered verifier (4/4 gates pass); tsconfig
+excludes it like smoke.ts. typecheck clean, build green, / at 25 kB. (Prior code
+commit this session: 679f13d retention vocabulary.) Re-confirm HEAD with git
+rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
 Define one business in plain terms, run it across named customer worlds; engine
-2.0.0 (untouched math) is a seeded agent-based Monte Carlo, lambda default 2.25,
-headline is a band. All v1 surfaces live: per-world cards (verdict + warnings),
+2.1.0 (reference-dependent logit core + the new off-by-default anchoring frame) is a
+seeded agent-based Monte Carlo, lambda default 2.25, headline is a band. All v1
+surfaces live: per-world cards (verdict + warnings),
 cross-world A/B compare + inversion finder, within-world fragility sweep, seeded
 run-link, /glossary, per-round CSV, three depth tiers (Student / Teaching / Deep
 dive) with a Finance-focus toggle. The last code session (0ebaef3) was triage +
@@ -41,18 +46,17 @@ dismissal, and spelled out CAC in the LTV:CAC def. Save invariant confirmed
 holding (Term popover is no-print; chip + label text still print).
 
 ## NEXT MOVE
-Mechanism #1 (retention vocabulary) is shipped. Next, per docs/design-note-v2.md §2,
-is ANCHORING reference-price as the FIRST ENGINE_VERSION challenger: let a business
-action shift the value-function reference point WITHOUT moving real price (a "was $X"
-reference), decaying back over a few rounds, with the pre-registered sweep in the
-note (monotonic shift on a headroom build, decays back, floors on a maximal-stress
-build; FAIL if a one-time reference makes a permanent non-decaying lift). This DOES
-touch sim.ts, so it is a deliberate versioned bump: bump ENGINE_VERSION, archive the
-old, run the sweep before promoting. The decoy/asymmetric-dominance branch stays
-held (contested per Frederick/Lee/Baskin, Yang/Lynn). A smaller parallel option is
-the deferred retention schema-bump (default/auto-renew as a new lever; splitting
-lock-in into contract vs switching cost), also a versioned change (enum + cfg +
-run-link schema v2). Engine still frozen until Jeff authorizes the sim.ts edit.
+Two open threads, both mine to sequence. (a) FINISH anchoring's user-facing exposure:
+a Deep-dive reference-price control in page.tsx (Teaching/Deep-dive tiers, not the
+default Student read — my taste call: teachable but exploitable), plus run-link
+persistence (add anchorShift/anchorRound to the adv token; backward-compatible,
+decode-clamped to ±20; old 2.0.0 links decode to anchor-off and reproduce exactly).
+Read page.tsx first; mind the version-mismatch surfacing so anchor-off 2.0.0 links
+don't throw a spurious warning. (b) Mechanism #3, PEAK-END memory, per design-note §3:
+reputation_memory = w_avg·mean + w_first·first + w_peak·peak + w_end·last, w_avg
+largest, weights set BY the pre-registered sweep (three equal-mean series: rising,
+falling, late-dip), versioned ENGINE_VERSION bump. Engine freeze is lifted, so no
+authorization gate; just keep the champion-challenger discipline (bump, sweep, archive).
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
@@ -68,9 +72,17 @@ Standalone repo, not council. Deterministic, reproducible, auditable core, not a
 LLM-respondent. Templates are CUSTOMER WORLDS applied to a user business. lambda
 default 2.25, held constant across worlds. Engine evolves by versioned release;
 ENGINE_VERSION stamps every result. NO machine learning. ALWAYS PUSH.
-- v1 is CLOSED. Engine (sim.ts) changes go by versioned release, not in-place;
-  prose/wiring fixes to business.ts + page.tsx are fine (this session was all
-  that, sim.ts untouched).
+- v1 is CLOSED. The engine FREEZE IS LIFTED (standing permission, 2026-06-19): Claude
+  versions sim.ts as needed, no per-edit authorization, keeping champion-challenger
+  discipline (bump ENGINE_VERSION, verify with a pre-registered sweep before
+  promoting, archive via git, off-by-default paths stay byte-identical). Never silent
+  runtime auto-tuning.
+- AUTONOMY (standing, 2026-06-19): Claude makes all engineering AND engineering-
+  adjacent calls, including the taste forks the design note parked. Jeff supplies the
+  vision; Claude executes it faithfully (don't water it down) on the best available
+  evidence. Surface a question ONLY for a genuine vision/values fork, never for
+  engineering-adjacent decisions. PRIOR-ART FIRST, always: check what already exists
+  (repo, prior decisions, the literature) before building; nothing is greenfield.
 - Three DEPTH tiers (Student / Teaching / Deep dive), not roles. Finance is a
   toggle in Teaching + Deep. Fresh visit opens Teaching; a run-link opens Student.
 - Term defs are CLICK/TAP popovers (native title fallback), not CSS :hover. A

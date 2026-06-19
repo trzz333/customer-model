@@ -29,9 +29,12 @@ const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x
 // onto every result so a run is always tied to a known engine (and, once the
 // seeded run-link ships, baked into the link so a graded answer key stays
 // reproducible). 2.0.0 = the reference-dependent logit core (HJF 1993 / TK 1992)
-// that replaced the 1.x fairness deadband. Evolve by versioned release, never by
-// silent runtime auto-tuning.
-export const ENGINE_VERSION = "2.0.0";
+// that replaced the 1.x fairness deadband. 2.1.0 = adds reference-price framing
+// (anchoring): a business can shift the reference a customer JUDGES against without
+// changing the real price, decaying at the engine's own re-anchoring rate. Off
+// (anchorShift 0) reproduces 2.0.0 byte-for-byte. Evolve by versioned release,
+// never by silent runtime auto-tuning.
+export const ENGINE_VERSION = "2.1.0";
 
 // ── Reference-dependent perception constants ─────────────────────────
 // The customer judges each round against an adapting reference point. The
@@ -100,6 +103,8 @@ export interface SimConfig {
   incidentRound: number;               // round a service incident hits (0 = none)
   competitorRound: number;             // round a predatory competitor enters (0 = none)
   competitorOffer: number;             // strength of the competitor's immediate lure
+  anchorRound: number;                 // round the reference-price frame starts (0 = from launch)
+  anchorShift: number;                 // points the JUDGED reference is lifted (a "was $X" list price); 0 = off; decays at the re-anchor rate, never moves real price
 }
 
 export type Action = "cooperate" | "defect" | "exploit" | "churned";
@@ -172,6 +177,17 @@ export function runSimulation(cfg: SimConfig): SimResult {
     const lure = competitorLive ? cfg.competitorOffer * Math.pow(0.82, round - cfg.competitorRound) : 0;
     const frictionDampen = cfg.friction / 100;
 
+    // Reference-price framing (anchoring, 2.1.0): an external "was $X" reference
+    // lifts the point customers JUDGE the price against, so the same price reads as
+    // a smaller loss or a gain. It is NOT the real price (revenue is unaffected) and
+    // is NOT written into the agent's adapting refPrice, so it decays at the engine's
+    // own re-anchoring rate (1-refAdapt)^k and perception returns to the real price
+    // history once it fades. This is the robust marketing form of anchoring; the
+    // fragile decoy / asymmetric-dominance form is deliberately not modelled.
+    const anchorEffect = (cfg.anchorShift !== 0 && round >= cfg.anchorRound)
+      ? cfg.anchorShift * Math.pow(1 - cfg.refAdapt, round - cfg.anchorRound)
+      : 0;
+
     let active = 0, churnedThisRound = 0, exploiting = 0, revenue = 0, satisfied = 0;
 
     for (const ag of agents) {
@@ -179,9 +195,11 @@ export function runSimulation(cfg: SimConfig): SimResult {
 
       // 1. Perceive the move through a reference-dependent value function.
       //    Loss (price above reference, or value below it) is weighted by λ
-      //    versus an equal gain, with diminishing sensitivity α (TK 1992).
-      const priceLoss = Math.max(0, price - ag.refPrice);
-      const priceGain = Math.max(0, ag.refPrice - price);
+      //    versus an equal gain, with diminishing sensitivity α (TK 1992). The
+      //    judged price reference includes any active reference-price frame.
+      const effRefPrice = ag.refPrice + anchorEffect;
+      const priceLoss = Math.max(0, price - effRefPrice);
+      const priceGain = Math.max(0, effRefPrice - price);
       const valueLoss = Math.max(0, ag.refValue - value);
       const valueGain = Math.max(0, value - ag.refValue);
       let utility =
@@ -350,4 +368,5 @@ export const DEFAULT_CONFIG: SimConfig = {
   priceIndex: 100, valueIndex: 100, friction: 35, promoActive: false,
   lossAversion: 2.25, presentBias: 1.8, refAdapt: 0.25, noise: 0.05,
   hikeRound: 12, hikeSize: 10, incidentRound: 0, competitorRound: 26, competitorOffer: 28,
+  anchorRound: 0, anchorShift: 0,
 };
