@@ -747,3 +747,39 @@ Confirmed in passing: anchoring's run-link persistence already shipped (business
 encodes as/ar into the adv token, decode-clamped; engine + Teaching/Deep dial + Student
 teachable note all live), so design-note-v2 §2's "PENDING: UI exposure + run-link
 persistence" line is stale and superseded.
+
+
+## 2026-06-19 — governing-principle UI polish; LLM-voice direction locked
+
+Two things closed this session. First, the v2 governing principle is now surfaced
+in the product. The deep-tier Methodology block (src/app/page.tsx) opens with one
+sentence stating the selection rule: a behavioral effect earns a place only if it
+survives replication, sized to that replicated (often smaller) effect; effects that
+did not hold up, such as social priming, are left out on purpose, not faked; the
+check on AI hand-waving does not hand-wave about itself. Deep-tier only, per
+minimal-by-default, so the fresh Student landing is unchanged. Single UI string, no
+engine touch; additive prose inside #result-printable with verdict/warnings
+untouched, so the save invariant holds by construction. typecheck clean, build green
+at / 27.3 kB. Commit ad72814.
+
+Second, the LLM voice layer (OPEN QUESTION #1, the one genuine product/values fork)
+is RESOLVED in direction. Jeff accepted the recorded recommendation: narration-first
+(interpret the engine numbers, tailor by reader role), single model, low temperature,
+grounded in the per-segment series, cached/pinned to the run-link token so a graded
+artifact stays stable, clearly labeled as the one non-reproducible layer on top of the
+deterministic core. Autofill (input-side parsing) stays lower priority and is only
+acceptable if the parsed levers are shown and editable. The build itself is sequenced
+as its own dedicated session and must START WITH ITS OWN PRE-REGISTRATION before any
+code: cost, latency, classroom-scale rate limits, the mid-class failure/fallback mode,
+and the paste->prompt-injection surface, plus the model + prompt contract + cache key
++ overclaim guard. @anthropic-ai/sdk is already present (unused). No open values fork
+remains on it; OPEN QUESTIONS in handoff slimmed accordingly. Commit 0e05e5d (docs).
+
+Also produced this session (not a repo artifact): an embedded-Claude audit prompt
+casting an average first-year marketing professor, pinned to the live production site
+with NO repo/source access (a cold outside read; reading the makers' own notes would
+contaminate it), given the navigational facts (three tiers, Finance toggle, glossary,
+run-link) but not the epistemic claims, to surface overclaim/clarity/mislead defects.
+The prior "no Finance block" false positive (a stale pre-deploy build) is the reason
+the prompt pins to production and the reason findings get triaged against source
+before acceptance.

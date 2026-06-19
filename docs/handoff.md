@@ -109,23 +109,20 @@ stamps every result. NO machine learning. ALWAYS PUSH.
   only with shown/editable parsed levers. Still unbuilt.
 
 ## OPEN QUESTIONS
-1. LLM voice — DIRECTION RESOLVED 2026-06-19: Jeff accepted the recommendation
-   (narration-first, single model, grounded in the per-segment series, cached/pinned
-   to the run-link, labeled the one non-reproducible layer; autofill lower priority,
-   shown/editable levers only). What remains is the BUILD itself, sequenced as its own
-   dedicated session with its own pre-registration (see NEXT MOVE). No open values fork
-   left on it.
-(The two retention/anchoring taste forks are RESOLVED — see DECISIONS LOCKED,
-design-note-v2 §RESOLVED, and history.)
+None genuinely open. The LLM-voice direction was resolved 2026-06-19 (narration-first;
+see NEXT MOVE for the build and its required pre-registration, DECISIONS LOCKED for the
+form, and history 2026-06-19). The retention/anchoring taste forks are also resolved
+(see DECISIONS LOCKED, design-note-v2 §RESOLVED, history).
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
    #result-printable; verdict + warning chips carry NO export class and NO toggle, so
    they survive every saved copy by construction; details.numbers force-opened into both
    saved paths. The summary-first collapse gates export to the expanded (full) state, so
-   the only saveable state is the complete one. Confirmed intact this session (the gated
-   anchor note is additive prose inside #result-printable; verdict/warnings untouched in
-   WorldCard). Re-confirm on any page.tsx change.
+   the only saveable state is the complete one. Confirmed intact this session (the new
+   governing-principle sentence is additive prose inside the deep Methodology block in
+   #result-printable; verdict/warnings untouched in WorldCard). Re-confirm on any
+   page.tsx change.
 2. REPO IS PUBLIC. docs/* and AGENTS.md are world-visible; history.md carries some Vercel
    IDs + a gmail (Jeff accepted this knowingly). No keys in the repo; secrets in env only.
    The LinkedIn/career brief is kept OFF the repo (download artifact only).
