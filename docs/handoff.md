@@ -10,107 +10,109 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v1 CLOSED; v2 BUILD underway. Mechanism #1 (retention vocabulary) shipped. Mechanism
-#2 (anchoring / reference-price framing) ENGINE shipped + verified this session as
-ENGINE_VERSION 2.1.0: a decaying anchorEffect lifts the judged reference without
-moving real price; the pre-registered sweep (sweep-anchor.ts) passes all four gates.
-Engine freeze is LIFTED (standing permission from Jeff). Anchoring's user-facing
-exposure (Deep-dive control + run-link persistence) is the only piece of #2 still
-pending; the engine is adv-drivable now.
+v2 BUILD. Mechanisms #1 (retention vocabulary), #2 (anchoring / reference-price
+framing), and #3 (peak-end reputation memory) are all SHIPPED and verified. #2 is now
+fully user-reachable (engine + UI control + run-link). #3 is the current engine,
+ENGINE_VERSION 2.2.0. Engine freeze is LIFTED (standing). What's left of the planned
+v2 spine is the deferred retention schema-bump and the held mechanisms; the LLM voice
+remains the one open product/values fork.
 
 ## LAST COMMIT
-04945ac — feat: anchoring reference-price engine (ENGINE_VERSION 2.1.0); last CODE
-commit. Followed by 4f8d587 (AGENTS.md working agreement) and this handoff docs
-commit. typecheck clean, build green, / at 25 kB. Re-confirm HEAD with git
-rev-parse; don't trust a hardcoded hash.
+76016f3 — feat: peak-end reputation memory (ENGINE_VERSION 2.2.0). Preceded by 48a02ef
+(anchoring UI + run-link exposure). typecheck clean, build green, / at 26 kB. Both
+sweeps pass on 2.2.0; smoke determinism PASS. Re-confirm HEAD with git rev-parse;
+don't trust a hardcoded hash.
 
 ## CURRENT STATE
-Define one business in plain terms, run it across named customer worlds. Engine 2.1.0
-is a seeded agent-based Monte Carlo on a reference-dependent logit core (lambda 2.25,
-headline is a band), now with an off-by-default reference-price anchoring frame.
-v1 surfaces all live: per-world cards (verdict + warn.chips), cross-world A/B compare
-+ inversion finder, within-world fragility sweep, seeded run-link, /glossary,
-per-round CSV, three depth tiers (Student / Teaching / Deep) with a Finance toggle.
-v2 so far: retention vocabulary is a single-source RETENTION_MECHANISMS table the
-form/teaching-prompt/glossary derive from; anchoring is engine-shipped and verified
-(sweep-anchor.ts, 4/4) but not yet user-reachable (adv-drivable only). UI (page.tsx)
-unchanged this session, so the save invariant is intact by construction.
+Define one business in plain terms, run it across named customer worlds. Engine 2.2.0
+is a seeded agent-based Monte Carlo on a reference-dependent logit core (λ 2.25,
+headline is a band), with two off-the-shelf behavioral frames now live: reference-price
+anchoring (a decaying frame that lifts the JUDGED price without moving real price) and
+peak-end reputation MEMORY (acquisition runs off how the whole relationship is
+remembered — average-dominant, first-impression-led, modest peak/end — not the latest
+round). All v1 surfaces live: per-world cards (verdict + warn chips), A/B compare +
+inversion finder, fragility sweep, seeded run-link, /glossary, per-round CSV, three
+depth tiers (Student / Teaching / Deep) with a Finance toggle. Anchoring is exposed as
+a Teaching/Deep control (off the Student read) and persists in the run-link
+(backward-compatible, anchor-off tokens byte-identical to old links). Peak-end is
+calibrated engine science, not a user lever; the deep methodology names it. The save
+invariant holds (verdict + warnings can't drop from a saved copy, by construction).
 
 ## NEXT MOVE
-Two open threads, both mine to sequence. (a) FINISH anchoring's user-facing exposure:
-a Deep-dive reference-price control in page.tsx (Teaching/Deep-dive tiers, not the
-default Student read — my taste call: teachable but exploitable), plus run-link
-persistence (add anchorShift/anchorRound to the adv token; backward-compatible,
-decode-clamped to ±20; old 2.0.0 links decode to anchor-off and reproduce exactly).
-Read page.tsx first; mind the version-mismatch surfacing so anchor-off 2.0.0 links
-don't throw a spurious warning. (b) Mechanism #3, PEAK-END memory, per design-note §3:
-reputation_memory = w_avg·mean + w_first·first + w_peak·peak + w_end·last, w_avg
-largest, weights set BY the pre-registered sweep (three equal-mean series: rising,
-falling, late-dip), versioned ENGINE_VERSION bump. Engine freeze is lifted, so no
-authorization gate; just keep the champion-challenger discipline (bump, sweep, archive).
+My call: build the DEFERRED RETENTION SCHEMA-BUMP (design-note §1 reconciliation). Two
+parts, both versioned input-layer steps, not an ENGINE_VERSION bump: (a) add
+default/auto-renew as a NEW Retention enum value (new cfg mapping — a distinct
+inertia-plus-endorsement nudge, NOT just more friction and NOT the standing promo),
+carrying the contested-nudge caveat in its def (Mertens 2022 d≈0.43 vs Maier 2022 PNAS
+null after publication-bias correction); (b) split the current "lock-in" option into
+separate "contract" and "switching cost" options instead of the disclosed conflation.
+Both touch the Retention enum + businessToCfg + RETENTION_MECHANISMS table + the
+run-link RETENTIONS array (additive: old links decode via the pick fallback, so
+backward-compatible). Single source of truth: extend RETENTION_MECHANISMS; FIELDS /
+RET_DESC / GLOSSARY derive. No engine math. Alternative if you'd rather: surface a
+peak-end visual in Deep dive (remembered vs raw reputation), but that's polish, not the
+next spine step.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits.
-- GitHub: trzz333/customer-model — PUBLIC (so Professor Bonner can read it without
-  an account; docs/ are world-visible). Pushed this session's docs + code commits.
+- GitHub: trzz333/customer-model — PUBLIC (Professor Bonner can read docs without an
+  account). Pushed this session's two code commits + docs.
 - Vercel: live at customer-model.council.fyi; auto-deploys latest main on push.
-  Current runtime is engine 2.1.0 (anchoring present but off by default, so the live
-  site behaves exactly as before until the control ships).
-- Env vars: NO. v1 is key-free. @anthropic-ai/sdk present but unused (post-v1
-  voice). lz-string@1.5.0 is the one runtime dep.
+  Runtime is now engine 2.2.0 (peak-end live; anchoring control reachable in
+  Teaching/Deep). Default-run numbers shifted slightly vs 2.1.0 (peak-end), expected.
+- Env vars: NO. v2 so far is key-free. @anthropic-ai/sdk present but unused (post-spine
+  voice layer). lz-string@1.5.0 is the one runtime dep.
 
 ## DECISIONS LOCKED
 Standalone repo, not council. Deterministic, reproducible, auditable core, not an
-LLM-respondent. Templates are CUSTOMER WORLDS applied to a user business. lambda
-default 2.25, held constant across worlds. Engine evolves by versioned release;
-ENGINE_VERSION stamps every result. NO machine learning. ALWAYS PUSH.
-- v1 is CLOSED. The engine FREEZE IS LIFTED (standing permission, 2026-06-19): Claude
-  versions sim.ts as needed, no per-edit authorization, keeping champion-challenger
-  discipline (bump ENGINE_VERSION, verify with a pre-registered sweep before
-  promoting, archive via git, off-by-default paths stay byte-identical). Never silent
-  runtime auto-tuning.
-- AUTONOMY (standing, 2026-06-19): Claude makes all engineering AND engineering-
-  adjacent calls, including the taste forks the design note parked. Jeff supplies the
-  vision; Claude executes it faithfully (don't water it down) on the best available
-  evidence. Surface a question ONLY for a genuine vision/values fork, never for
-  engineering-adjacent decisions. PRIOR-ART FIRST, always: check what already exists
-  (repo, prior decisions, the literature) before building; nothing is greenfield.
-- Three DEPTH tiers (Student / Teaching / Deep dive), not roles. Finance is a
-  toggle in Teaching + Deep. Fresh visit opens Teaching; a run-link opens Student.
-- Term defs are CLICK/TAP popovers (native title fallback), not CSS :hover. A
-  "does nothing on hover" report is a tester artifact. (The subhead that wrongly
-  said "on hover" was corrected to click/tap this session.)
-- LLM voice: single-model, after v1, never a committee. Narration-first, cached
-  to the run-link. Still deferred and unbuilt.
+LLM-respondent. Templates are CUSTOMER WORLDS applied to a user business. λ default
+2.25, held constant across worlds. Engine evolves by versioned release; ENGINE_VERSION
+stamps every result. NO machine learning. ALWAYS PUSH.
+- Engine FREEZE LIFTED (standing): Claude versions sim.ts without per-edit
+  authorization, keeping champion-challenger discipline (bump ENGINE_VERSION, verify
+  with a pre-registered sweep before promoting, off-by-default/identity paths
+  byte-identical, archive via git). Never silent runtime auto-tuning.
+- AUTONOMY (standing): Claude makes all engineering AND engineering-adjacent calls,
+  including parked taste forks and effect-sizing. Jeff supplies vision; Claude executes
+  faithfully on evidence. Surface a question ONLY for a genuine vision/values fork.
+  PRIOR-ART FIRST always; when prior art contradicts the plan, prior art wins and the
+  plan is reconciled in writing (this session: peak-end gate reconciliation).
+- Three DEPTH tiers (Student / Teaching / Deep), Finance a toggle in Teaching + Deep.
+  Fresh visit opens Teaching; a run-link opens Student.
+- Anchoring exposure: Teaching/Deep only, not the Student read (teachable but
+  exploitable). Peak-end weights are calibrated science, not a user lever.
+- Term defs are CLICK/TAP popovers (native title fallback), not CSS :hover.
+- LLM voice: single-model, after the deterministic spine, never a committee.
+  Narration-first, cached to the run-link. Still deferred and unbuilt.
 
 ## OPEN QUESTIONS
-1. LLM voice — the one genuine product/values fork left. A non-deterministic narration
-   layer sits in tension with the tool's determinism pitch, so before building it I
-   want Jeff's read on whether it ships at all and narration vs autofill. Absent input,
-   I proceed with the recorded recommendation: narration-first, deferred, cached/pinned
-   to the run-link, clearly labelled as the one non-reproducible layer.
-   (The old v2-scope and tier-copy forks are now Claude's calls under AUTONOMY, not
-   open questions; Bonner outreach already done.)
+1. LLM voice — the one genuine product/values fork. A non-deterministic narration
+   layer sits in tension with the determinism pitch, so before building it I want
+   Jeff's read on whether it ships at all and narration vs autofill. Absent input, the
+   recorded recommendation stands: narration-first, deferred, cached/pinned to the
+   run-link, clearly labelled as the one non-reproducible layer.
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
    #result-printable; verdict + warning chips carry NO export class and NO toggle, so
    they survive every saved copy by construction; details.numbers force-opened into
-   both saved paths. INTACT this session by construction: page.tsx + globals.css were
-   not touched, so nothing could regress it. Re-confirm on any page.tsx change.
-2. REPO IS PUBLIC. docs/handoff, history, plan, design-note, AGENTS.md are
-   world-visible; history.md carries some Vercel IDs + a gmail (Jeff accepted
-   this knowingly). No keys anywhere in the repo; keep secrets in env only.
-3. ALWAYS PUSH (standing). This session pushed: 187e4e4 (v2 research), 4477100
-   (design note), 679f13d (retention vocabulary), 04945ac (anchoring engine 2.1.0),
-   4f8d587 (AGENTS.md), + this handoff commit.
-4. BUILD QUIRK: a bare `npm install <pkg>` PRUNES devDependencies and breaks the
-   build; restore with `npm install --include=dev`. Validate: cmd shell,
-   `npm run typecheck` (NOT npx tsc), `npm run build`, scoped git add, commit
-   via `git commit -F <file>` (PowerShell word-splits inline -m and mangles ;),
-   push. typescript pinned 5.8.2.
-5. SINGLE SOURCE OF TRUTH: plain defs live ONCE — TERM_DEFS + ARCH_DEF in
-   business.ts; page.tsx aliases TERM_DEFS as DEF and imports ARCH_DEF;
-   /glossary derives from GLOSSARY + ARCHETYPES. Retention words live ONCE in
-   RETENTION_MECHANISMS (business.ts); FIELDS, RET_DESC, and GLOSSARY derive from it.
-   Edit once.
+   both saved paths. This session's page.tsx edits (anchoring control in the no-print
+   aside; ref tag in the printable header; peak-end sentence inside the export-gated
+   methodology details) did not touch verdict/warnings, so it holds by construction.
+   Re-confirm on any page.tsx change.
+2. REPO IS PUBLIC. docs/* and AGENTS.md are world-visible; history.md carries some
+   Vercel IDs + a gmail (Jeff accepted this knowingly). No keys in the repo; secrets in
+   env only.
+3. ENGINE VERSIONS: 2.0.0 logit core; 2.1.0 anchoring (anchor-off ≡ 2.0.0); 2.2.0
+   peak-end memory (identity repWeights {0,0,0,1} ≡ 2.1.0). runLinkReproducesExactly()
+   suppresses the mismatch banner only for the 2.0.0↔2.1.0 anchor-off pair; every other
+   gap surfaces (a 2.1.0 link on 2.2.0 correctly warns — peak-end changes results).
+4. BUILD QUIRK: a bare `npm install <pkg>` PRUNES devDependencies and breaks the build;
+   restore with `npm install --include=dev`. Validate: cmd shell, `npm run typecheck`
+   (NOT npx tsc), `npm run build`, scoped git add, commit via `git commit -F <file>`,
+   push. Sweeps/smoke run via `node <file>.ts` (sim.ts is a leaf, resolves natively);
+   anything importing business.ts needs `npx --yes tsx` (business.ts has extensionless
+   internal imports node won't resolve). Root scripts excluded in tsconfig.
+5. SINGLE SOURCE OF TRUTH: TERM_DEFS + ARCH_DEF in business.ts; RETENTION_MECHANISMS
+   owns retention words (FIELDS / RET_DESC / GLOSSARY derive); REP_MEMORY + RepWeights
+   + collapseReputation in sim.ts own peak-end. Edit once.

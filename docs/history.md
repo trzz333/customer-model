@@ -585,3 +585,45 @@ so handoff.md stays terse:
 - The two design-note taste forks (named retention mechanisms in Student tier or
   only Teaching/Deep dive; anchoring lever faculty-only vs student-visible) are now
   Claude's calls under the autonomy decision, no longer open Jeff questions.
+
+
+## 2026-06-19 (session 2 — anchoring exposure + peak-end engine)
+
+- Mechanism #2 anchoring FULLY CLOSED (was engine-only). Commit 48a02ef wired the
+  2.1.0 frame end-to-end without touching sim.ts: a Teaching/Deep "Reference-price
+  framing" control in page.tsx (shift 0–20, start round), kept off the Student read
+  (Jeff's recorded taste call: teachable but exploitable). derived.advEng now passes
+  anchorShift/anchorRound so the frame drives the sweep, finance, compare, and
+  fragility consistently; the run header records "ref +N@rR" so a saved/shared copy
+  is honest about the scenario. RunLinkState.adv + encode/decode carry the anchor
+  fields, additive and optional: anchor-off tokens are byte-identical to the
+  pre-2.1.0 schema (every previously shared link unchanged), decode mirrors the
+  businessToCfg clamps (±20, round within the link's horizon).
+- runLinkReproducesExactly() added (business.ts): suppresses the engine-mismatch
+  banner only when the result is provably identical — the 2.0.0↔2.1.0 pair with
+  anchor off (the off-path-identity gate). Fails safe: any other version gap surfaces.
+  10-assertion run-link smoke check passed (off-path byte-stable, on round-trips,
+  clamps, version gate both directions); throwaway deleted.
+- Mechanism #3 PEAK-END reputation memory shipped + verified, commit 76016f3,
+  ENGINE_VERSION 2.1.0 → 2.2.0. Acquisition runs off a REMEMBERED reputation:
+  collapseReputation(series-so-far, REP_MEMORY {avg .58, first .22, peak .10, end .10}),
+  built causally each round; average-dominant, FIRST the largest correction, modest
+  peak/end. endingReputation is now the remembered value; minReputation stays the raw
+  lived low. Optional cfg.repWeights is the identity/rollback affordance — {0,0,0,1}
+  reproduces 2.1.0 byte-for-byte. NOT a user lever (calibrated science, like λ); deep
+  methodology names it + the evidence.
+- GATE RECONCILED (the one scope-touching call): the design note's original peak-end
+  verifier "falling must end lower than rising" encoded naive recency — it cancels to
+  60·(w_first − w_end), forcing w_end > w_first, which contradicts the cited
+  first-impression evidence (McCullough 2024) and §3's own rejection of naive
+  peak-end. Replaced BEFORE running with evidence-aligned gates (sweep-peakend.ts, 7
+  gates, all pass: identity, average-dominance/convergence, first-impression,
+  negative-peak pull, flat invariant, well-formed weights, live-and-modest). Documented
+  in sim.ts, sweep-peakend.ts, and design-note §3 per AGENTS.md (prior art wins,
+  reconcile in writing). Reversible via a one-line weight change.
+- sweep-anchor.ts gate 1 updated for the 2.2.0 bump: 1a pins the current no-anchor
+  baseline (1762833 — peak-end shifted it, anchoring did not), 1b proves anchoring is
+  still byte-clean vs 2.1.0 at peak-end identity weights. Gates 2–4 unchanged, pass.
+  tsconfig excludes sweep-peakend.ts.
+- The default-run revenue moved 1771114 → 1762833 because peak-end is live on the
+  default config (it dips into the >100 acquisition regime). Determinism intact.
