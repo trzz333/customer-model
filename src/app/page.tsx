@@ -471,6 +471,12 @@ export default function Page() {
   const [view, setView] = useState<View>("teaching");
   const [emphasis, setEmphasis] = useState<Emphasis>("behavioral");
   const [exp, setExp] = useState<ExportSel>(DEFAULT_EXPORT);
+  // Landing starts collapsed to a summary-first teaser. Any intentional act —
+  // running a business, opening a run-link, or asking for the full read —
+  // expands it permanently for the session. Export is gated on this, so the
+  // saved/printed path is only ever reachable from the fully expanded state:
+  // verdict + warnings can't be lost to the collapse, by construction.
+  const [expanded, setExpanded] = useState(false);
   const deep = view === "deep";                            // behavioral-econ veteran: λ + cited methodology
   const hasControls = view === "teaching" || view === "deep";  // any professor mode: dials + finance + export
   const financeLed = hasControls && emphasis === "finance";
@@ -508,7 +514,7 @@ export default function Page() {
   const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
   const setFieldB = (k: keyof BizInput, v: string) => setBizB((b) => ({ ...b, [k]: v }));
   const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
-  function run() { setRan({ biz, bizB, compare, fragility, selected, adv, fin }); setLoadedEngine(null); }
+  function run() { setRan({ biz, bizB, compare, fragility, selected, adv, fin }); setLoadedEngine(null); setExpanded(true); }
 
   // Load a shared run-link on first mount: decode ?r and apply it to the inputs
   // AND to `ran`, so the identical result renders immediately. The link re-runs
@@ -525,6 +531,7 @@ export default function Page() {
     const { biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f } = decoded.state;
     setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
     setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
+    setExpanded(true);   // a shared link is a finished artifact: open it fully, never the teaser
     setView("student");   // a shared link is a finished artifact; open it in the clean read, not the configurer's controls
     // Surface an engine mismatch ONLY when the result would actually differ. An
     // anchor-off 2.0.0 link reproduces byte-for-byte on 2.1.0 (off-path identity),
@@ -682,7 +689,13 @@ export default function Page() {
             </button>
           ))}
 
-          <div className="mt-5 border-t border-card-border pt-3">
+          <button onClick={run} className={`w-full mt-5 rounded-lg py-2.5 font-medium transition-colors ${stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"}`}>
+            {stale ? "Run stress test →" : "Re-run"}
+          </button>
+
+          <details className="mt-5 border-t border-card-border pt-3 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">Comparisons &amp; checks</summary>
+          <div>
             <button onClick={() => setCompare((c) => !c)}
               className={`w-full text-left flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors ${compare ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
               <span className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[10px] ${compare ? "bg-primary border-primary text-white" : "border-muted-fg"}`}>{compare ? "✓" : ""}</span>
@@ -718,14 +731,13 @@ export default function Page() {
               <span><span className="text-sm font-medium">Fragility check</span><span className="block text-xs text-muted-fg leading-snug">Smallest single move that flips each world&apos;s verdict. Robust, or one tweak away?</span></span>
             </button>
           </div>
-
-          <button onClick={run} className={`w-full mt-4 rounded-lg py-2.5 font-medium transition-colors ${stale ? "bg-primary hover:bg-primary-light text-white" : "bg-card-muted border border-card-border text-muted-fg"}`}>
-            {stale ? "Run stress test →" : "Re-run"}
-          </button>
+          </details>
 
           {hasControls && (
             <>
-              <div className="mt-5 border-t border-card-border pt-3">
+              <details className="mt-5 border-t border-card-border pt-3 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">Tuning</summary>
+              <div className="mt-2">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-fg mb-1.5">Difficulty</div>
                 <div className="inline-flex rounded-lg border border-card-border bg-card-muted p-0.5 w-full">
                   {DIFFS.map((d) => (
@@ -761,6 +773,7 @@ export default function Page() {
                   <AdvSlider label="Loss aversion λ" value={adv.lossAversion} min={1} max={3.5} step={0.05} onChange={(v) => setAdv((a) => ({ ...a, lossAversion: v }))} format={(v) => v.toFixed(2)} />
                 </details>
               )}
+              </details>
 
               <details className="mt-3 border-t border-card-border pt-3" open={financeLed}>
                 <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Finance — optional unit economics</summary>
@@ -775,6 +788,7 @@ export default function Page() {
         </aside>
 
         <section>
+          {expanded && (
           <div className="no-print mb-4">
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={printAll} title="Save or print this. The saved copy keeps every verdict and warning shown here."
@@ -803,6 +817,7 @@ export default function Page() {
               </div>
             )}
           </div>
+          )}
 
           {loadedEngine && (
             <div className="no-print mb-4 rounded-lg border border-warn/50 bg-warn/10 px-4 py-2.5 text-xs leading-relaxed text-warn">
@@ -823,6 +838,16 @@ export default function Page() {
             </div>
             <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
 
+            {!expanded && derived.sweeps.length > 0 ? (
+              <div className="rounded-xl border border-primary bg-primary/10 p-5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">A worked example is loaded</h3>
+                {derived.synth
+                  ? <p className="text-[15px] leading-relaxed mb-4">{derived.synth}</p>
+                  : <p className="text-[15px] leading-relaxed mb-4">{ran.biz.name || "This business"} is set up and ready. Edit it on the left and run, or open the full read of the loaded example.</p>}
+                <button onClick={() => setExpanded(true)} className="rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 transition-colors">See the full analysis →</button>
+              </div>
+            ) : (
+            <>
             {ran.biz.model?.trim() ? (
               <details className={`numbers mb-4 rounded-xl border border-card-border bg-card-muted p-4 ${exp.model ? "" : "export-hidden"}`}>
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-fg">Business model under test</summary>
@@ -921,6 +946,8 @@ export default function Page() {
                 <p className="mb-2">Each round the customer judges price and value against an adapting reference point. A perceived loss (price above what they&apos;re used to, or value below it) is weighted by a factor <Term def={DEF.lambda}>λ</Term> against an equal-size gain, with diminishing sensitivity, and a logit turns the resulting utility into a graded chance of defecting. This is the reference-dependent choice model of Hardie, Johnson &amp; Fader (1993, Marketing Science), built on the Tversky &amp; Kahneman (1992) value function (λ default 2.25; meta-analytic estimates run lower). λ is load-bearing wherever your moves create a perceived loss: raise price or cut value with nothing to buffer it and sliding λ moves the verdicts, a large unbuffered loss by tens of points. Where there is no loss to weight, or the model has already collapsed, λ has little to move. It is held constant across customer worlds as the shared science; what changes between worlds is who the customers are. A present-bias term adds the pull of an immediate competitor discount.</p>
                 <p>Deterministic by design, not a committee of LLM personas answering as fake customers: same seed, same result, every run. The simulation rolls many individual customers, so the underlying randomness fixes the whole roll (who is in the crowd, who reads each round as a loss, who actually leaves), not only the perception-noise misreads. A different roll is equally valid and can move the per-100 count by several points, which is why the headline is a typical run with a range, not a single number, and why the randomness is exposed as a difficulty setting rather than a raw seed. Word of mouth runs off how the whole relationship is <i>remembered</i>, not only the latest round: a reputation-memory term (engine 2.2.0) collapses the per-round reputation series into a remembered value that is average-dominant, with a first-impression weight and only modest peak and recency corrections. The naive peak-end form (memory = peak + end) is rejected for an extended, heterogeneous customer relationship, where the cited evidence (a 2019 VR study; McCullough et al. 2024, a 5,000-stay hotel field study) says the average and the first impression reassert; it bites near the acquisition threshold, where a strong start tempers, or a severe late failure deepens, the word of mouth a current snapshot alone would imply. Counts are shown per 100 starting customers; the engine runs a larger population and rescales for readability, and word-of-mouth can push the ending count above 100 because it acquires as well as loses.</p>
               </details>
+            )}
+            </>
             )}
           </div>
         </section>
