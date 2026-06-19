@@ -190,3 +190,82 @@ via git.
   Teaching / Deep dive (a cognitive-load call).
 - Whether anchoring reference-price is a faculty-only cfg knob or also a
   student-visible lever (a teachable but exploitable move).
+
+
+## CAVEAT RECONCILIATION (literature pass, 2026-06-19)
+Jeff asked how the field has overcome the caveats that led me to size three v2
+mechanisms conservatively. Short version: the conservative calls mostly hold. The
+research firms up the justification, re-bases one sizing, and tips one parked taste
+fork. No mechanism is unlocked for a large effect bump on this evidence, which is the
+replication standard working as intended.
+
+### Anchoring (reference-price)
+Caveat carried: estimation anchoring is robust (Many Labs 1), marketing/WTP anchoring
+is mixed, and the decoy branch does not replicate outside numeric stimuli.
+Field response: the WTP/WTA anchoring meta-analysis ("Anchoring in Economics", J.
+Behav. Exp. Econ. 2020, 53 studies) finds a moderate effect, smaller than early
+studies, and names the moderators that recover the strong effect: high anchor relevance
+and compatibility, buying (not selling) tasks, and non-lab settings. A "was $X"
+reference price is exactly a relevant, compatible, purchase-side anchor, so it sits in
+the robust regime, not the fragile arbitrary-anchor regime. Li & Weigel (Economic
+Inquiry 2025) is the cleanest recent statement: the direction replicates robustly, the
+magnitude is smaller than the classic figures. Brzozowicz & Krawczyk (PLOS ONE 2022)
+add that incentivized decisions attenuate anchoring relative to hypothetical ones.
+Call: KEEP the modest decaying frame as is (it already encodes "directional, magnitude
+smaller than headline"). Decoy stays excluded (only directional anchoring replicates).
+This evidence tips the parked taste fork toward exposing the reference-price lever in
+the Student tier: it is the robust, teachable, defensible form of anchoring, not the
+contested one. Jeff still owns that fork.
+
+### Peak-end memory
+Caveat carried: naive peak+end (duration-neglect, average-ignoring) fails for extended,
+heterogeneous relationships; the average and first impression reassert (the VR study;
+McCullough et al. 2024 hotel field study).
+Field response: Alaybek et al. (Org. Behav. Hum. Decis. Process. 2022) is the synthesis.
+Across studies, peak, end, AND average all carry robust, roughly comparable weight on
+the retrospective evaluation, while trend is considerably weaker. That validates a
+COMPOSITE (average + peak + end, weak trend), not naive peak+end and not average-only.
+For extended relationships specifically, Clark et al. ("Kahneman meets the Quitters")
+found a peak-end transformation of a long job-satisfaction series predicts quitting,
+which is structurally our churn case, so peak-end shape carries signal over a long
+relationship. Garbinsky, Morewedge & Shiv (2014): recency beats primacy for extended
+hedonic runs via memory interference, but primacy reasserts when the first moment is
+made salient (a customer's onboarding/first impression is salient).
+Call: the current weights {avg .58, first .22, peak .10, end .10} are DEFENSIBLE and
+stay. Alaybek's "peak/end comparable to average" pools across experience types, many
+short and simple where peak-end is strongest; it does not override the
+extended-relationship evidence that average and first impression dominate our case. One
+candidate refinement, low priority and pre-registered: test a slightly stronger
+NEGATIVE-peak term (the robust, retained part of peak-end is a severe failure), gated by
+G4, with the fail condition that it must not move equal-mean verdicts beyond the band G2
+allows. An option for the next engine session, not a mandate.
+
+### Default / auto-renew nudge (deferred retention bump)
+Caveat carried: nudge effects are contested (Mertens 2022 aggregate d approx 0.43 vs
+Maier 2022 near-null after publication-bias correction).
+Field response: the contested aggregate is the wrong number to size on. Both camps now
+agree the error is pooling incommensurable nudges (the DataColada "Meaningless Means"
+critique; Mertens' own reply). Sized on default-specific evidence, defaults are the
+single most robust subcategory: Jachimowicz et al. (Behav. Public Policy 2019) put
+defaults well above other nudge types (and above framing d approx 0.31, eating-nudge
+d approx 0.23), and Mertens' own forest plot has defaults among the top categories
+(d approx 0.62). The reliability lever is the endorsement pathway: defaults work best
+when the decision-maker infers the default is recommended and when the default and its
+purpose are transparent (Jachimowicz 2019; Paunov et al.). Our design already specifies
+the default lever as "inertia-plus-endorsement, not just more friction," so it already
+encodes the lever that makes defaults reliable. Counterweight: DellaVigna & Linos (2022)
+show Nudge-Unit field RCTs run smaller than published effects, and some default effects
+fail to replicate at scale (Kristal et al. 2020), so size toward the field lower bound.
+Call: when the default/auto-renew lever is built, REPLACE the "contested, near-null"
+caveat with the accurate one: defaults are the most robust nudge subcategory, sized at
+the conservative field end, conditioned on the endorsement/transparency pathway the
+design already uses. An upgrade of the justification, not an effect-size increase beyond
+the modest range already planned.
+
+### Net next steps (all next-session work, none urgent)
+1. Anchoring rationale firmed; the Student-visible reference-price lever fork tips
+   toward yes (still Jeff's call).
+2. Default/auto-renew lever, when built, re-based on default-specific evidence
+   (robust-but-modest, endorsement-conditioned) instead of the contested aggregate.
+3. Optional pre-registered peak-end negative-peak test, gated by G4/G2.
+None overturns a shipped result; the engine (2.2.0) is unchanged by this pass.

@@ -627,3 +627,43 @@ so handoff.md stays terse:
   tsconfig excludes sweep-peakend.ts.
 - The default-run revenue moved 1771114 → 1762833 because peak-end is live on the
   default config (it dips into the >100 acquisition regime). Determinism intact.
+
+## 2026-06-19 — Summary-first landing, categorized rail, caveat reconciliation
+
+UI (commit 7852247, page.tsx only, no engine touch). Replaced the dense default-
+populated landing with a summary-first read in every mode. The worked example
+(EXAMPLES[0] across three worlds) still computes on load but renders as a one-
+paragraph teaser ("A worked example is loaded" + the plain-language synth) with a
+"See the full analysis" button. A new `expanded` state gates both the full analysis
+and the export toolbar; it flips true on Run, on a run-link load, or on the See-full
+button, and stays true for the session. Because the Save/Print/Copy toolbar only
+renders when expanded, the save invariant holds by construction: the only saveable
+state is the fully expanded one where the verdict + warning chips render. Left rail
+regrouped into labeled categories: Your business and Customer worlds stay open, the
+Run button moved up directly under the worlds, Compare + Fragility collapsed into a
+"Comparisons & checks" details, Difficulty + Reference-price + Advanced collapsed into
+a "Tuning" details, Finance kept as its own block. typecheck clean, build green, / at
+26.2 kB (was 26).
+
+Caveat reconciliation (literature pass, written to design-note-v2.md "CAVEAT
+RECONCILIATION"). Jeff asked how the field has overcome the three caveats behind the
+conservative v2 effect-sizing. Result: the conservative calls mostly hold; the research
+firms up justification, re-bases one sizing, and tips one taste fork.
+- Anchoring: the WTP/WTA meta-analysis moderators (relevant/compatible anchor, buying
+  task, non-lab) put a "was $X" reference price in the robust regime; Li & Weigel (2025)
+  confirm direction-robust, magnitude-smaller. Keep the modest decaying frame; decoy
+  stays excluded; the Student-visible-lever fork tips toward yes.
+- Peak-end: Alaybek et al. (2022) meta-analysis validates a composite (average + peak +
+  end, weak trend), not naive peak+end; current weights {avg .58, first .22, peak .10,
+  end .10} stay. Optional future pre-registered test: a slightly stronger negative-peak
+  term, gated by G4/G2.
+- Default/auto-renew nudge: the Mertens-vs-Maier aggregate is the wrong frame (pooling
+  incommensurable nudges). Defaults are the most robust subcategory (Jachimowicz 2019;
+  Mertens forest plot d≈0.62), reliable via the endorsement/transparency pathway the
+  design already encodes, but size toward the field lower bound (DellaVigna & Linos 2022;
+  Kristal et al. 2020 non-replications). When built, replace the "contested, near-null"
+  caveat with this.
+
+Off-repo decision: the LinkedIn/career brief was produced as a download artifact and
+deliberately NOT committed, since the code may become Washburn's and self-promo doesn't
+belong in a transferable repo.
