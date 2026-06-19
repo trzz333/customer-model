@@ -171,6 +171,7 @@ export const TERM_DEFS = {
   payback: "How many rounds until a customer pays back what it cost to get them. Shown as a round number: r0 means within the first round.",
   loss: "People feel a loss more than a same-size gain. Losing $10 stings more than finding $10 feels good.",
   present: "People grab a reward now even when waiting a bit would be better.",
+  anchor: "Reference-price frame: the price people compare against is nudged higher early on, so a later price reads as a smaller jump. A real, well-tested nudge when the comparison is honest; the model sizes it modestly and leaves it off unless someone turns it on.",
   worlds: "Different kinds of crowds — like loyal regulars versus deal-chasers.",
   lambda: "Loss aversion (the Greek letter lambda). How many times heavier a loss feels than an equal gain.",
 };
@@ -186,6 +187,7 @@ export const GLOSSARY: { term: string; def: string }[] = [
   { term: "Tipping point", def: TERM_DEFS.tipping },
   { term: "Loss aversion", def: TERM_DEFS.loss },
   { term: "Present bias", def: TERM_DEFS.present },
+  { term: "Reference-price frame", def: TERM_DEFS.anchor },
   { term: "Lambda (λ)", def: TERM_DEFS.lambda },
   { term: "Contribution margin", def: TERM_DEFS.contribution },
   { term: "NPV (net present value)", def: TERM_DEFS.npv },

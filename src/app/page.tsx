@@ -939,6 +939,9 @@ export default function Page() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-fg mb-2">How to read this</h3>
                 <p className="mb-2">Each customer world is a different mix of people, from loyal regulars to deal-chasers. The engine plays your four moves out over many rounds and counts who stays and who leaves. It leans on two everyday facts about people: <Term def={DEF.loss}>loss aversion</Term> (a price rise or a quality drop stings more than an equal-size improvement pleases) and <Term def={DEF.present}>present bias</Term> (a discount right now is tempting even when staying would be smarter).</p>
                 <p>Because luck plays a part, the headline is a typical run with a range around it, not one fixed number. Same inputs always give the same set of runs, so two people can compare the exact same result. Counts are shown per 100 starting customers, and word of mouth can push the ending count above 100 because a good <Term def={DEF.reputation}>reputation</Term> brings new people in.</p>
+                {anchorOn && (
+                  <p className="mt-2">This run also turned on a <Term def={DEF.anchor}>reference-price frame</Term>: the price customers compare against was set higher early on, so later prices read as a smaller jump. It is a real effect, kept modest here, and off unless someone turns it on.</p>
+                )}
               </div>
             ) : (
               <details className={`rounded-xl border border-card-border bg-card-muted p-5 text-sm text-muted-fg leading-relaxed ${exp.methodology ? "" : "export-hidden"}`} open={!financeLed}>

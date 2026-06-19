@@ -185,11 +185,36 @@ tier and the held mechanisms (network effects, reciprocity, brand) are later-ver
 candidates. Each engine challenger is a version bump, old version archived, rollback
 via git.
 
-## OPEN (genuinely Jeff's taste, not mine to settle)
-- Whether the named retention mechanisms surface in the Student tier or only in
-  Teaching / Deep dive (a cognitive-load call).
-- Whether anchoring reference-price is a faculty-only cfg knob or also a
-  student-visible lever (a teachable but exploitable move).
+## RESOLVED (Jeff delegated taste + set the "minimal default" directive, 2026-06-19)
+Jeff handed both forks to Claude ("the taste stuff is up to you, best balance of
+evidence") and added a standing directive: the UI must look MINIMAL by default.
+That directive, plus the locked "Student tier has no dials" rule, breaks the ties.
+
+PRINCIPLE NOW STANDING: minimal by default, depth on demand. The fresh-visit
+surface carries only what a novice needs to act; named mechanisms and contested
+levers are revealed one tier up, in the glossary, or only when a faculty-shared
+run-link turns them on. This is the progressive-disclosure spine the project
+already adopted from comparable business sims (Capsim tier-by-complexity), now
+made explicit as the tie-breaker for tier-placement calls.
+
+1. Named retention mechanisms in Student: STAY OUT of the Student read beyond the
+   plain option labels they already carry ("A contract or commitment", "High
+   switching cost", "It auto-renews by default"). The mechanism NAME and its
+   honest def live in the Glossary (open to all) and in Teaching's tappable terms.
+   The plain label already conveys the move; the name is a tier up for the curious.
+   No code change needed; current gating already matched the call.
+
+2. Reference-price (anchoring) lever in Student: the DIAL stays Teaching/Deep only.
+   Reasons: (a) the locked no-dials rule for Student; (b) minimal default; (c) the
+   implemented frame is reference-price/WTP anchoring, the more MIXED application
+   (estimation anchoring is the robust one), so handing novices the knob
+   unscaffolded is exactly where the caveat pass said to be cautious. BUT the
+   mechanism is now TEACHABLE where the evidence says students should meet it: a
+   plain `anchor` def added to TERM_DEFS, a Glossary entry, and one anchoring-GATED
+   sentence in the Student/Teaching "How to read this" block, so a faculty link
+   that turns the frame on explains it instead of only tagging it. Off by default,
+   so the minimal fresh landing is untouched. Synthesis: students SEE and learn the
+   frame (effect plus plain explanation), faculty CONTROL it (the dial).
 
 
 ## CAVEAT RECONCILIATION (literature pass, 2026-06-19)
@@ -263,9 +288,12 @@ design already uses. An upgrade of the justification, not an effect-size increas
 the modest range already planned.
 
 ### Net next steps (all next-session work, none urgent)
-1. Anchoring rationale firmed; the Student-visible reference-price lever fork tips
-   toward yes (still Jeff's call).
-2. Default/auto-renew lever, when built, re-based on default-specific evidence
-   (robust-but-modest, endorsement-conditioned) instead of the contested aggregate.
+1. Anchoring rationale firmed. The Student reference-price fork is RESOLVED (see
+   RESOLVED section): dial stays Teaching/Deep, mechanism made teachable in the
+   Student read via a gated note + glossary term. Minimal-default is now standing.
+2. Default/auto-renew lever: DONE (commit 5489aa3). Added as a new Retention enum
+   value sized on default-specific evidence (robust-but-modest, endorsement-
+   conditioned); lock-in split into contract vs switching cost; run-link additive.
+   Input-layer only, no ENGINE_VERSION bump. Verified by smoke-retention.ts.
 3. Optional pre-registered peak-end negative-peak test, gated by G4/G2.
 None overturns a shipped result; the engine (2.2.0) is unchanged by this pass.
