@@ -16,14 +16,17 @@ v2 BUILD, engine roadmap COMPLETE. Mechanisms #1 (retention vocabulary), #2
 run-link persistence), #3 (peak-end memory) all SHIPPED; the optional peak-end
 negative-peak refinement was tested and CLOSED not-material this session. Engine is
 ENGINE_VERSION 2.2.0, unchanged for several sessions and stable. Social unfurl
-(LinkedIn/OG) shipped this session. The next substantive item is a product/values
-fork (the LLM voice layer), not an engineering task. Engine freeze is LIFTED
-(standing).
+(LinkedIn/OG) shipped earlier. The governing-principle polish shipped this session
+(ad72814). The next substantive item is a product/values fork (the LLM voice layer):
+Jeff accepted the recommendation on 2026-06-19, so the DIRECTION is now locked
+(narration-first), but the build is its own dedicated session, not yet started.
+Engine freeze is LIFTED (standing).
 
 ## LAST COMMIT
-23df3c0 — test(peakend): pre-registered negative-peak refinement test, closed
-not-material. Preceded by f3b4fc5 (OG image crisp-fix) and 1d53911 (LinkedIn/OG
-unfurl). All pushed; typecheck clean, build green, sweep-peakend.ts gates pass.
+ad72814 — feat(ui): surface the governing selection principle in deep Methodology
+(one sentence: model only replicated effects at honest sizes; priming left out, not
+faked). Preceded by 673ee24 (docs) and 23df3c0 (peak-end negpeak test, closed
+not-material). All pushed; typecheck clean, build green at / 27.3 kB.
 Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
@@ -46,22 +49,20 @@ layout exports openGraph + twitter metadata and a 1200x630 src/app/opengraph-ima
 via Next's file convention.
 
 ## NEXT MOVE
-The v2 engine-mechanism roadmap is COMPLETE and verified at 2.2.0 (retention,
-anchoring, peak-end all shipped; the optional peak-end negative-peak refinement was
-tested and closed not-material, sweep-peakend-negpeak.ts). The social unfurl shipped.
-There is no remaining no-fork engineering task on the critical path. The next
-substantive item is the LLM VOICE LAYER, which is OPEN QUESTION #1: a genuine
-product/values fork (a non-deterministic narration layer sits in tension with the
-determinism pitch), so it is Jeff's call, not a unilateral build. Do NOT start it
-without Jeff. If Jeff wants the voice layer: the recorded recommendation is
-narration-first (interpret the engine numbers, tailor by reader role), cached/pinned
-to the run-link token for graded-artifact stability, clearly labeled as the one
-non-reproducible layer; autofill (input-side parsing) is lower priority and only
-acceptable if parsed levers are shown and editable. If Jeff wants to DEFER the voice
-decision, available no-fork polish only (none load-bearing): a small UI surfacing of
-the v2 governing principle ("model only replicated effects at honest effect sizes"),
-or later-version held mechanisms (decoy tier, network effects, reciprocity, brand —
-all explicitly held, not greenlit). Otherwise the engine is stable; await direction.
+Build the LLM VOICE LAYER in a dedicated session — direction LOCKED 2026-06-19 (Jeff
+accepted the recommendation). Form: narration-first (interpret the engine numbers,
+tailor by reader role), single model, low temperature, grounded in the per-segment
+series; cached/pinned to the run-link token so a graded artifact stays stable; clearly
+labeled as the one non-reproducible layer on top of the deterministic core. Autofill
+(input-side parsing) is lower priority and only acceptable if the parsed levers are
+shown and editable. START THE BUILD WITH ITS OWN PRE-REGISTRATION before any code:
+cost, latency, classroom-scale rate limits, the mid-class failure/fallback mode, and
+the paste->prompt-injection surface; decide model + prompt contract + cache key +
+overclaim guard up front. @anthropic-ai/sdk is already present (unused). The v2
+engine-mechanism roadmap stays COMPLETE at 2.2.0; the governing-principle polish is
+DONE (ad72814). Remaining non-voice polish, all optional and non-load-bearing:
+later-version held mechanisms (decoy tier, network effects, reciprocity, brand — held,
+not greenlit), or emailing Bonner the live link (Jeff's call, not drafted).
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits. GitHub: trzz333/customer-model — PUBLIC.
@@ -102,14 +103,18 @@ stamps every result. NO machine learning. ALWAYS PUSH.
 - Peak-end weights are calibrated science, not a user lever. Term defs are CLICK/TAP
   popovers (native title fallback), not CSS :hover.
 - LLM voice: single-model, after the deterministic spine, never a committee.
-  Narration-first, cached to the run-link. Still deferred and unbuilt.
+  Narration-first, cached/pinned to the run-link, labeled the one non-reproducible
+  layer. DIRECTION LOCKED (Jeff accepted the recommendation, 2026-06-19); the build is
+  its own dedicated session with its own pre-registration. Autofill lower priority,
+  only with shown/editable parsed levers. Still unbuilt.
 
 ## OPEN QUESTIONS
-1. LLM voice — the one genuine product/values fork (narration vs autofill, or whether
-   it ships at all). A non-deterministic narration layer sits in tension with the
-   determinism pitch. Absent input, the recorded recommendation stands: narration-first,
-   deferred, cached/pinned to the run-link, clearly labelled as the one non-reproducible
-   layer.
+1. LLM voice — DIRECTION RESOLVED 2026-06-19: Jeff accepted the recommendation
+   (narration-first, single model, grounded in the per-segment series, cached/pinned
+   to the run-link, labeled the one non-reproducible layer; autofill lower priority,
+   shown/editable levers only). What remains is the BUILD itself, sequenced as its own
+   dedicated session with its own pre-registration (see NEXT MOVE). No open values fork
+   left on it.
 (The two retention/anchoring taste forks are RESOLVED — see DECISIONS LOCKED,
 design-note-v2 §RESOLVED, and history.)
 
