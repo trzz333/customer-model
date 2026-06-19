@@ -116,6 +116,15 @@ comparison, behind an explicit toggle, default off, labeled "contested: weak
 outside numeric comparisons." Recommend shipping reference-price alone first.
 
 ## 3. PEAK-END MEMORY (versioned engine mechanism, SECOND challenger)
+STATUS: engine SHIPPED as ENGINE_VERSION 2.2.0 and VERIFIED (sweep-peakend.ts, all
+gates pass). sim.ts adds collapseReputation + REP_MEMORY weights {avg .58, first .22,
+peak .10, end .10}; acquisition runs off the remembered reputation (series-so-far
+collapsed by those weights), not the latest smoothed value. Identity weights
+{0,0,0,1} reproduce 2.1.0 byte-for-byte (the engine's rollback point); the 2.2.0
+default-run revenue is 1762833 (down from 2.1.0's 1771114) because peak-end is now
+live on the default run. The deep-tier methodology names the mechanism and its
+evidence. NOT a user lever: weights are calibrated engine science, like λ.
+
 Evidence posture (verified this session): the clinical/pain peak-end result
 (Redelmeier-Kahneman) is robust. But for COMPLEX, heterogeneous experiences a 2019
 VR study found peak and end are inferior to a simple average at predicting
@@ -136,13 +145,34 @@ modest corrections, not the whole story). peak_extreme is the most extreme valen
 in the series, which captures the negative-peak case where the effect is strongest.
 Deterministic, no new randomness.
 
-Verifying sweep (pre-registered): build three round series with identical means but
-different shapes (rising, falling, a sharp late dip). At default weights, the
-falling and late-dip series must end with lower reputation than the rising one, and
-that gap must shrink toward zero as w_avg approaches 1 (proving the average term
-dominates and the corrections are modest). FAIL CONDITION: if any single non-average
-weight flips a verdict on a flat series, it is oversized. Default weights are set BY
-the sweep, not by eye (engine-evolution policy: no eyeballing one scenario).
+Verifying sweep (pre-registered, RECONCILED). The original verifier here read
+"the falling and late-dip series must end with lower reputation than the rising one."
+That encodes NAIVE peak-end (recency wins) — which this section itself rejects, and
+which contradicts the cited first-impression evidence. For two equal-mean series
+whose peaks coincide (rising 60→120, falling 120→60), the peak term cancels and
+remembered_falling − remembered_rising = 60·(w_first − w_end); the old gate would
+force w_end > w_first, the opposite of McCullough's "first impressions dominate." Per
+AGENTS.md (when prior art contradicts the plan, prior art wins and the plan is
+reconciled in writing), the gate was replaced — before running — with evidence-
+aligned checks (sweep-peakend.ts):
+- G1 OFF-PATH IDENTITY: identity weights {0,0,0,1} reproduce 2.1.0 default revenue
+  (1771114) exactly.
+- G2 AVERAGE DOMINANCE + CONVERGENCE: on the three equal-mean series the remembered
+  values stay within a modest band of the common mean, and the spread shrinks
+  monotonically to zero as w_avg → 1 (proving the average dominates, corrections
+  modest).
+- G3 FIRST-IMPRESSION (the replacement directional gate): the better first impression
+  (falling, starts 120) is remembered at least as well as the worse one (rising,
+  starts 60). This is the McCullough effect, the opposite of the old gate.
+- G4 NEGATIVE-PEAK PULL: a severe late crater (late-dip, same mean) is remembered
+  BELOW the rising series — the robust, retained part of peak-end.
+- G5 FLAT INVARIANT (the design note's actual FAIL CONDITION): a flat series is
+  invariant to every single non-average weight (no shape ⇒ corrections vanish).
+- G6/G7: weights well-formed (sum 1, avg strictly largest) and the mechanism is live
+  yet modestly sized in the full engine (on a healthy build, the first-impression
+  anchor tempers runaway word of mouth by < 1 per 100).
+Default weights {avg .58, first .22, peak .10, end .10} were set against these gates,
+not by eye. All pass.
 
 ## SEQUENCING
 Ship order: (1) retention vocabulary — DONE (single-source RETENTION_MECHANISMS

@@ -4,9 +4,10 @@
 //   2. MONOTONIC HEADROOM a positive frame on a hike build raises keep%, monotone.
 //   3. DECAYS BACK        the frame fades at (1-refAdapt)^k; no permanent lift.
 //   4. FLOORS ON STRESS   on a catastrophe build the frame barely helps.
-import { runSimulation, DEFAULT_CONFIG, type SimConfig } from "./src/lib/sim.ts";
+import { runSimulation, DEFAULT_CONFIG, type SimConfig, type RepWeights } from "./src/lib/sim.ts";
 
 const SEEDS = [12345, 222, 777, 4040, 90909, 31337, 56789];
+const REP_IDENTITY: RepWeights = { avg: 0, first: 0, peak: 0, end: 1 };
 const keepOf = (c: SimConfig) => {
   const r = runSimulation(c);
   return (r.endingActive / r.startingActive) * 100;
@@ -21,9 +22,20 @@ const lastChurn = (c: SimConfig, n: number) => {
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
 // ── 1. OFF-PATH IDENTITY ─────────────────────────────────────────────
+// Two parts after the 2.2.0 peak-end bump shifted the default-run baseline:
+// (1a) anchor off must equal the engine's OWN current no-anchor baseline (a
+//      regression pin; DEFAULT_CONFIG has anchorShift 0). 2.2.0 default = 1762833,
+//      down from the 2.1.0 value 1771114 because peak-end is now live on the default
+//      run; anchoring did not cause this.
+// (1b) anchoring's cross-version identity, isolated from peak-end: with peak-end at
+//      identity weights, anchor off reproduces the historical 2.1.0 revenue 1771114,
+//      proving the anchor path itself is still byte-clean.
 const baseRev = Math.round(runSimulation(DEFAULT_CONFIG).totalRevenue);
-console.log("1. off-path identity:", baseRev === 1771114 ? "PASS" : "FAIL",
-  "| default revenue", baseRev, "(expect 1771114; anchor off must not perturb 2.0.0)");
+console.log("1a. off-path identity (current engine):", baseRev === 1762833 ? "PASS" : "FAIL",
+  "| 2.2.0 default revenue", baseRev, "(expect 1762833; anchor off must not perturb the baseline)");
+const idRev = Math.round(runSimulation({ ...DEFAULT_CONFIG, repWeights: REP_IDENTITY }).totalRevenue);
+console.log("1b. anchoring identity vs 2.1.0 (peak-end at identity):", idRev === 1771114 ? "PASS" : "FAIL",
+  "| revenue", idRev, "(expect 1771114; anchor path byte-clean independent of peak-end)");
 
 // ── 2. MONOTONIC HEADROOM ────────────────────────────────────────────
 // A hike build: price rises +30 at round 8, so it reads as a loss the frame can blunt.

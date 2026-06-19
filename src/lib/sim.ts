@@ -32,9 +32,15 @@ const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x
 // that replaced the 1.x fairness deadband. 2.1.0 = adds reference-price framing
 // (anchoring): a business can shift the reference a customer JUDGES against without
 // changing the real price, decaying at the engine's own re-anchoring rate. Off
-// (anchorShift 0) reproduces 2.0.0 byte-for-byte. Evolve by versioned release,
+// (anchorShift 0) reproduces 2.0.0 byte-for-byte. 2.2.0 = reputation MEMORY
+// (peak-end, conservative form): the reputation that drives word-of-mouth
+// acquisition is no longer the latest smoothed value but a weighted memory of the
+// per-round series so far — average-dominant, with a first-impression term and
+// modest extreme-peak and recency corrections (REP_MEMORY below). At identity
+// weights {avg:0,first:0,peak:0,end:1} the memory equals the current reputation, so
+// 2.2.0 reproduces 2.1.0 byte-for-byte. Evolve by versioned release,
 // never by silent runtime auto-tuning.
-export const ENGINE_VERSION = "2.1.0";
+export const ENGINE_VERSION = "2.2.0";
 
 // ── Reference-dependent perception constants ─────────────────────────
 // The customer judges each round against an adapting reference point. The
@@ -47,6 +53,49 @@ export const ENGINE_VERSION = "2.1.0";
 const PT_ALPHA = 0.88;   // diminishing sensitivity (TK 1992 median)
 const PERC_TOL = 22;     // tolerance: small perceived unfairness is shrugged off
 const PERC_TEMP = 7;     // logit sharpness of the cooperate/defect read
+
+// ── Reputation memory (peak-end, 2.2.0) ──────────────────────────────
+// How an extended, heterogeneous customer relationship is REMEMBERED — the
+// reputation that drives word-of-mouth acquisition. The naive peak-end form
+// (memory = peak + end) is REJECTED for this unit of analysis: for complex,
+// multi-round experiences the evidence says the running AVERAGE and the FIRST
+// impression reassert. A 2019 VR study found a simple average beats peak+end at
+// predicting remembered experience; McCullough et al. (2024, J. Business Research),
+// a 5,000-stay hotel field study, found FIRST impressions dominate overall
+// satisfaction, more so as recall delay grows. So the memory is average-dominant,
+// with FIRST the largest correction and only modest extreme-peak and recency (end)
+// terms. peakExtreme is the value furthest from the neutral 100, which captures the
+// robust negative-peak case (a severe late failure still drags memory down).
+//
+// NOTE on the directional gate: the design note's original verifier ("falling must
+// end lower than rising") encodes naive recency, which §3 itself rejects and which
+// contradicts the cited first-impression evidence (for two equal-mean series whose
+// peaks coincide, remembered_falling − remembered_rising = 60·(w_first − w_end), so
+// that gate would force w_end > w_first). It was replaced with evidence-aligned
+// gates in sweep-peakend.ts and reconciled in docs/design-note-v2.md §3.
+//
+// Weights sum to 1 with avg strictly largest; calibrated by the pre-registered sweep
+// (sweep-peakend.ts), not by eye. Identity {avg:0,first:0,peak:0,end:1} reproduces
+// 2.1.0 (the off-path-identity gate); it is the engine's rollback point.
+export interface RepWeights { avg: number; first: number; peak: number; end: number }
+export const REP_MEMORY: RepWeights = { avg: 0.58, first: 0.22, peak: 0.10, end: 0.10 };
+
+// Collapse a reputation SERIES (per-round, in order) into one remembered value.
+// Pure and deterministic; the engine calls it on the series so far each round and
+// the sweep calls it on synthetic series. peakExtreme = the entry furthest from the
+// neutral 100, ties broken toward the more negative (the negative peak is the robust
+// effect). At identity weights this returns series[last].
+export function collapseReputation(series: number[], w: RepWeights): number {
+  const n = series.length;
+  if (n === 0) return 100;
+  let sum = 0, peak = series[0];
+  for (const x of series) {
+    sum += x;
+    const d = Math.abs(x - 100), dp = Math.abs(peak - 100);
+    if (d > dp || (d === dp && x < peak)) peak = x;
+  }
+  return w.avg * (sum / n) + w.first * series[0] + w.peak * peak + w.end * series[n - 1];
+}
 
 // ── Archetypes ───────────────────────────────────────────────────────
 export type StratKey =
@@ -105,6 +154,7 @@ export interface SimConfig {
   competitorOffer: number;             // strength of the competitor's immediate lure
   anchorRound: number;                 // round the reference-price frame starts (0 = from launch)
   anchorShift: number;                 // points the JUDGED reference is lifted (a "was $X" list price); 0 = off; decays at the re-anchor rate, never moves real price
+  repWeights?: RepWeights;             // peak-end reputation-memory weights; absent ⇒ REP_MEMORY (the calibrated 2.2.0 default). Set to identity {0,0,0,1} to reproduce 2.1.0.
 }
 
 export type Action = "cooperate" | "defect" | "exploit" | "churned";
@@ -165,6 +215,14 @@ export function runSimulation(cfg: SimConfig): SimResult {
   const startingActive = agents.length;
   const metrics: RoundMetric[] = [];
   let reputation = 100, totalRevenue = 0, exploitationCost = 0;
+
+  // Peak-end reputation memory (2.2.0): the remembered reputation that drives
+  // acquisition is the series so far collapsed by the calibrated weights. Built
+  // incrementally and causally (only past rounds). Identity weights ⇒ last value ⇒
+  // 2.1.0 behaviour. repWeights from cfg lets the sweep run the identity gate.
+  const repWeights = cfg.repWeights ?? REP_MEMORY;
+  const repSeries: number[] = [];
+  let rememberedReputation = 100;
 
   for (let round = 0; round < cfg.rounds; round++) {
     let price = cfg.priceIndex;
@@ -292,8 +350,12 @@ export function runSimulation(cfg: SimConfig): SimResult {
     reputation += (repTarget - reputation) * 0.2;
     reputation = clamp(reputation, 0, 160);
 
-    // 6. Reputation drives acquisition: healthy rep regrows the base.
-    const acqRate = (reputation - 100) / 100;
+    // 6. Reputation MEMORY drives acquisition: word of mouth runs off how the whole
+    //    relationship is REMEMBERED so far (average-dominant, first-impression-led),
+    //    not just the latest round. Built causally from the series up to now.
+    repSeries.push(reputation);
+    rememberedReputation = collapseReputation(repSeries, repWeights);
+    const acqRate = (rememberedReputation - 100) / 100;
     const newCount = Math.max(0, Math.round(startingActive * 0.03 * acqRate));
     for (let i = 0; i < newCount; i++) { spawn(); active++; }
 
@@ -322,7 +384,11 @@ export function runSimulation(cfg: SimConfig): SimResult {
   return {
     rounds: metrics, perArch, totalRevenue, exploitationCost,
     startingActive, endingActive,
-    endingReputation: metrics.length ? metrics[metrics.length - 1].reputation : 100,
+    // endingReputation is the REMEMBERED reputation (peak-end memory), the forward-
+    // looking word-of-mouth signal; minReputation stays the raw experienced low (the
+    // "rotted to X" warning is about what was lived, not what is remembered). At
+    // identity weights remembered == last raw reputation, so this matches 2.1.0.
+    endingReputation: metrics.length ? Math.round(rememberedReputation * 10) / 10 : 100,
     minReputation: metrics.length ? Math.min(...metrics.map((m) => m.reputation)) : 100,
     tippingRound,
   };
