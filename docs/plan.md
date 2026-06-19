@@ -145,6 +145,71 @@ reasons it is a v2 enhancement, not a v1 requirement.
    friction gate) so a skeptical colleague can audit the mechanics, not just the
    citations. Faculty-requested.
 
+## V2 MARKETING-PSYCHOLOGY RESEARCH (researched + verified 2026-06-18)
+Direction-setting for V2 PARKING LOT #1 (retention vocabulary) and #3 (narration
+fidelity). A research/discussion session surveyed the marketing-psych literature
+for mechanisms worth naming or modeling in v2; this block is the verdict per
+mechanism plus the spine that governs all of them. No engine or code change came
+out of it; sim.ts untouched.
+
+THE SPINE (design principle). Model ONLY effects that survive replication, at
+honest (often smaller) effect sizes, and say so in the UI. The marketing-psych
+literature is a replication minefield, so selectivity is itself the pitch and a
+teaching feature — the same posture already used for λ (canonical 2.25, meta
+estimates lower). Each mechanism is EITHER honest prose vocabulary that resolves
+to the existing cfg knobs OR a versioned engine mechanism with real math and a
+verifying sweep. Never faked, never shoehorned into friction. Engine bends only
+at a versioned release.
+
+VERDICTS:
+- PRIMING — DO NOT MODEL as a mechanic. Social/behavioral "metaphorical" priming
+  is the poster child of the replication crisis (~25% social-psych replicability
+  in the Reproducibility Project; Kahneman's 2012 open letter; the Bargh elderly-
+  prime walking-speed effect failed to replicate, Doyen 2012). Only narrow
+  cognitive/semantic priming (seconds, attention) is real, and that is not "a
+  brand cue durably shifts buying." Use priming in the UI as the example of what
+  the tool deliberately refuses to fake — a clean line for Bonner's class.
+- ANCHORING / REFERENCE FRAMING — LEAD CANDIDATE, cleanest fit. VERIFIED this
+  session: estimation anchoring replicated robustly in Many Labs 1 (Klein 2014),
+  in fact stronger than the original Jacowitz–Kahneman 1995 effect. Honest
+  nuance worth teaching: the rock-solid form is numeric-estimation anchoring; the
+  marketing willingness-to-pay / reference-price application (a "was $X" list
+  price, a premium decoy tier, option order) is plausible and partially supported
+  but more mixed (some WTP replications are weak), so size it MODESTLY and label
+  the distinction rather than inheriting the full estimation effect size. The
+  engine already has an adapting reference point; the v2 move is to let a business
+  shift the reference WITHOUT moving real price, so the same price reads as a
+  smaller loss or a gain. This touches the reference variable with real math —
+  a candidate versioned engine mechanism, not prose-only.
+- PEAK-END (+ primacy) — the most novel REAL addition. Reputation currently
+  builds off per-round satisfaction (an average); peak-end (Kahneman/Fredrickson)
+  says remembered experience tracks the peak moment and the ending, not the
+  average. Robust but qualified: holds in pain, consumer, and ad studies, but
+  some service studies find first impressions (primacy) dominate, so the honest
+  form weights first + peak + end. A versioned memory model feeding reputation /
+  word-of-mouth / acquisition. Deterministic, sweep-checkable.
+- DEFAULTS / NUDGES — CONTESTED, size MODESTLY. Mertens 2022 (PNAS) meta put
+  nudges at d≈0.43; Maier 2022 (PNAS) publication-bias correction found NO overall
+  effect with severe bias, only ~finance-domain nudges surviving. A default /
+  auto-renew IS a retention mechanism distinct from a lock-in contract: it works
+  via inertia plus implicit endorsement, hits the inertial/habit archetype, and
+  (unlike a high switching cost) breeds no grudger backlash. This is exactly the
+  "name the mechanism instead of collapsing it into friction" point in PARKING
+  LOT #1, foldable at a modest effect.
+- SKIP / RELABEL — scarcity/urgency is already the present-bias competitor lure;
+  endowment / pure framing is already covered by λ. Don't double-count.
+
+RECOMMENDED V2 SPINE: adopt the design principle above; LEAD with anchoring; ADD
+peak-end memory; FOLD defaults into the retention-vocabulary item at a modest
+effect.
+
+OPEN TASTE FORK (Jeff's call, carried from PARKING LOT #1): prose-only naming vs a
+small reusable retention-vocabulary layer, and how many mechanisms to name.
+
+NEXT CONCRETE ACTION (after this is persisted): turn the top 1–2 (anchoring,
+peak-end) into a design note — which engine variable each touches, prose-only vs
+versioned mechanism, and the sweep that verifies it.
+
 ## DECISIONS / CHANGELOG
 
 - Honesty pass (this session), triggered by a faculty audit run through a
