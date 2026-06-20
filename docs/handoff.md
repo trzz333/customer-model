@@ -14,19 +14,23 @@ archetypes. Live at https://customer-model.council.fyi.
 v2 BUILD, engine roadmap COMPLETE. Mechanisms #1 (retention vocabulary), #2
 (anchoring, fully wired: engine + Teaching/Deep dial + Student teachable note +
 run-link persistence), #3 (peak-end memory) all SHIPPED; the optional peak-end
-negative-peak refinement was tested and CLOSED not-material this session. Engine is
-ENGINE_VERSION 2.2.0, unchanged for several sessions and stable. Social unfurl
-(LinkedIn/OG) shipped earlier. The governing-principle polish shipped this session
-(ad72814). The next substantive item is a product/values fork (the LLM voice layer):
-Jeff accepted the recommendation on 2026-06-19, so the DIRECTION is now locked
-(narration-first), but the build is its own dedicated session, not yet started.
-Engine freeze is LIFTED (standing).
+negative-peak refinement was tested and CLOSED not-material. Engine is ENGINE_VERSION
+2.2.0, unchanged for several sessions and stable. Social unfurl (LinkedIn/OG) and the
+governing-principle polish (ad72814) shipped in prior sessions. This session shipped
+the BLANK cold open (no default business) plus four cold-instructor-review defect
+fixes (dc5da7f); UI-only, engine untouched. The next substantive item is a
+product/values fork (the LLM voice layer): Jeff accepted the recommendation on
+2026-06-19, so the DIRECTION is now locked (narration-first), but the build is its own
+dedicated session, not yet started. Engine freeze is LIFTED (standing).
 
 ## LAST COMMIT
-ad72814 — feat(ui): surface the governing selection principle in deep Methodology
-(one sentence: model only replicated effects at honest sizes; priming left out, not
-faked). Preceded by 673ee24 (docs) and 23df3c0 (peak-end negpeak test, closed
-not-material). All pushed; typecheck clean, build green at / 27.3 kB.
+dc5da7f — fix(ui): blank cold open + reviewer defects (no default business). The
+landing no longer pre-loads a worked example: the form starts empty (neutral moves),
+the result column shows a How-this-works instructions panel, and the run header is
+gated to the post-run state. The same commit fixes four cold-instructor-review
+defects (threat-lever narrative wording, 3-vs-5 worlds framing, whole-round LTV read,
+run-link tier fidelity). Engine 2.2.0 untouched. typecheck clean, build green at /
+27.7 kB; run-link round-trip + back-compat smoke 10/10.
 Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
 
 ## CURRENT STATE
@@ -38,8 +42,14 @@ promo, default/auto-renew, switching cost, contract); the old combined "lock-in"
 is RETIRED to a decode-only legacy key so old shared run-links still decode and
 reproduce byte-identically (friction 72 unchanged). Friction map is monotone:
 none 18 < promo 32 < loyalty 45 < default 52 < switchcost 58 < contract 68 <
-lockin 72. The landing opens MINIMAL in every mode (summary-first teaser; export
-gated to the expanded state). Anchoring: the dial stays Teaching/Deep, but the
+lockin 72. The landing opens BLANK in every mode: the form starts empty (neutral
+moves, no default business) and the result column shows a How-this-works
+instructions panel until the visitor runs or opens a run-link. Export stays gated
+to the post-run (expanded) state, so the save invariant is unchanged; the old
+summary-first worked-example teaser is RETIRED. Run-links now carry the author's
+depth tier (`vw`, Teaching/Deep only) so a faculty answer key reopens at its
+finished depth; a plain student share or any pre-existing link omits it and opens
+the clean Student read (byte-identical token, verified 10/10 smoke). Anchoring: the dial stays Teaching/Deep, but the
 reference-price frame is now teachable in the Student read via a plain glossary
 term and one anchoring-GATED sentence shown only when a faculty run-link turns the
 frame on. All v1/v2 surfaces remain: per-world cards (verdict + warn chips), A/B
@@ -93,8 +103,13 @@ stamps every result. NO machine learning. ALWAYS PUSH.
   contested levers are revealed one tier up, in the glossary, or only when a
   faculty-shared run-link turns them on. Tie-breaker for tier-placement calls.
 - Three DEPTH tiers (Student / Teaching / Deep), Finance a toggle in Teaching + Deep.
-  Fresh visit opens Teaching summary-first; a run-link opens Student fully expanded.
-  Student has NO dials.
+  Fresh visit opens BLANK with a How-this-works panel (NO default business, no
+  pre-loaded verdict). A run-link opens fully expanded at the author's shared tier
+  (Teaching/Deep carried in the token as `vw`; a plain student share or any
+  pre-existing link omits it and opens the clean Student read). Student has NO dials.
+  (This reconciles the earlier "run-link opens Student fully expanded" lock: students
+  still land in Student, but a faculty answer key keeps its finish depth. See history
+  2026-06-19b. Reversible in one revert if it cuts against vision.)
 - TASTE FORKS RESOLVED (2026-06-19, Jeff delegated): named retention mechanisms stay
   out of the Student read beyond their plain labels (name lives in glossary + Teaching
   terms); the anchoring DIAL stays Teaching/Deep, but the reference-price frame is
@@ -118,11 +133,13 @@ form, and history 2026-06-19). The retention/anchoring taste forks are also reso
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
    #result-printable; verdict + warning chips carry NO export class and NO toggle, so
    they survive every saved copy by construction; details.numbers force-opened into both
-   saved paths. The summary-first collapse gates export to the expanded (full) state, so
-   the only saveable state is the complete one. Confirmed intact this session (the new
-   governing-principle sentence is additive prose inside the deep Methodology block in
-   #result-printable; verdict/warnings untouched in WorldCard). Re-confirm on any
-   page.tsx change.
+   saved paths. Export is gated to the post-run `expanded` state (now set only by a run
+   or a run-link, never on landing), so the only saveable state is the complete one; the
+   old summary-first teaser that used to gate it is retired and does not weaken the gate.
+   Confirmed intact this session: the cold-open restructure gates the run HEADER on
+   `expanded` INSIDE #result-printable and shows a no-Save instructions panel before any
+   run, but the verdict/warning chips in WorldCard are untouched and the Save toolbar
+   still only renders when expanded. Re-confirm on any page.tsx change.
 2. REPO IS PUBLIC. docs/* and AGENTS.md are world-visible; history.md carries some Vercel
    IDs + a gmail (Jeff accepted this knowingly). No keys in the repo; secrets in env only.
    The LinkedIn/career brief is kept OFF the repo (download artifact only).

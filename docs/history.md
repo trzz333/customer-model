@@ -783,3 +783,61 @@ run-link) but not the epistemic claims, to surface overclaim/clarity/mislead def
 The prior "no Finance block" false positive (a stale pre-deploy build) is the reason
 the prompt pins to production and the reason findings get triaged against source
 before acceptance.
+
+
+## 2026-06-19b — Blank cold open + cold-instructor-review defect fixes (dc5da7f)
+
+A cold-instructor review (an average first-year marketing professor reading the live
+site with no source access) was run against production and triaged against source.
+One-line verdict from the review: assignable as a class demo and structured homework,
+with the cold open as the single biggest blocker. This session fixed that blocker and
+the other genuine defects. UI-only; engine 2.2.0 untouched.
+
+THE COLD OPEN (Jeff's explicit values call: "Minimal. No default business. Blank with
+instructions."). The landing used to initialize `ran` to a populated EXAMPLES[0]
+business and render a worked-example teaser, so a fresh visitor saw a verdict (and a
+class prompt naming "loss aversion 2.25x" and a rival) about a business they never set,
+which undercut the "audit instrument, not a black box" pitch in the first ten seconds.
+Fix: `DEFAULT_BIZ`/`DEFAULT_BIZ_B` are now an EMPTY_BIZ (neutral moves: hold/par/none/
+none, blank name+sell). The result column shows a "How this works" instructions panel
+(what the tool is, the three steps, the reproducibility note) until the visitor runs or
+opens a run-link. The run HEADER (business name + meta + structural-model disclaimer) is
+gated on `expanded` INSIDE #result-printable so the blank state is genuinely clean. The
+old summary-first worked-example teaser is retired. The save invariant is preserved by
+construction: the Save toolbar was already gated on `expanded`, which is set only by a
+run or a run-link, so there is no saveable partial state and verdict/warnings still
+carry no export class.
+
+REVIEWER DEFECTS FIXED in the same commit:
+- Threat-lever wording (business.ts laymanAnalysis): the per-world narrative said "the
+  cheaper rival arriving" regardless of the dial. Now reads "the aggressive rival
+  undercutting from round X" when the threat is aggressive (competitorOffer >= 50, i.e.
+  the "hard" lever) and "a cheaper rival appearing at round X" for the soft lever. The
+  dial now visibly does work, which was the reviewer's point.
+- 3-vs-5 worlds (page.tsx derived synth): the header says "Tested across 3 customer
+  worlds" while the short version reasoned over "all five." Reworded to frame the
+  all-worlds number explicitly as a REFERENCE benchmark across the worlds you did not
+  pick, with the count derived from WORLDS.length (no bare "five"). referenceBand was
+  confirmed to run across all 5 WORLDS, so the reconciliation is accurate, not cosmetic.
+- False precision (business.ts unitEconomics): "about 29.9 rounds of full-price revenue"
+  is now whole rounds ("about 30 rounds"), singular/plural handled. The tool preaches
+  against false precision, so it should not show three-sig-fig precision on a stochastic
+  median.
+- Run-link tier fidelity (business.ts encode/decode + page.tsx): the run-link is the
+  faculty answer-key primitive, but it reopened every shared run in Student tier,
+  stripping the Finance/methodology depth a faculty colleague was meant to see. The link
+  now carries the author's depth tier (`vw`, emitted only for Teaching/Deep). Student
+  shares and every pre-existing link omit it and open the clean Student read. This
+  RECONCILES the earlier locked decision "a run-link opens Student fully expanded":
+  students still land in Student; only a deliberately deeper share keeps its depth.
+  Verified with a 10/10 round-trip + back-compat smoke (student token byte-identical to
+  a no-tier token; engine inputs identical regardless of tier; old links decode). The
+  smoke was throwaway and not committed. Flagged to Jeff as a reconciliation of a
+  previously-locked line, reversible in one revert if it cuts against his vision.
+
+NOT CHANGED, because already correct: the reviewer flagged a glossary "Engine 2.0.0" vs
+main "2.2.0" mismatch, but the glossary already imports ENGINE_VERSION from sim.ts and
+single-sources it; the 2.0.0 the reviewer saw was a stale earlier deploy. No action.
+
+Validation: npm run typecheck clean; npm run build green at / 27.7 kB (was 27.3).
+Commit dc5da7f, scoped add of src/app/page.tsx + src/lib/business.ts, pushed.
