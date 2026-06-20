@@ -315,7 +315,7 @@ export function laymanAnalysis(cfg: SimConfig, r: SimResult, world: CustomerWorl
   const promoLeak = r.exploitationCost > r.totalRevenue * 0.08;
   let cause: string;
   if (hasComp && (tip === null || Math.abs(tip - cfg.competitorRound) <= 3) && churnPct >= 15)
-    cause = `The turning point was the cheaper rival arriving at round ${cfg.competitorRound}. ${world.impulsive ? "This crowd jumps at an instant saving" : "Even customers who weren't deal-hunting felt the pull"}, and ${cfg.friction < 30 ? "with little holding them in place, plenty left." : "switching costs slowed the bleed but didn't stop it."}`;
+    cause = `The turning point was ${cfg.competitorOffer >= 50 ? "the aggressive rival undercutting from" : "a cheaper rival appearing at"} round ${cfg.competitorRound}. ${world.impulsive ? "This crowd jumps at an instant saving" : "Even customers who weren't deal-hunting felt the pull"}, and ${cfg.friction < 30 ? "with little holding them in place, plenty left." : "switching costs slowed the bleed but didn't stop it."}`;
   else if (hasHike && (tip === null || Math.abs(tip - cfg.hikeRound) <= 4) && churnPct >= 15)
     cause = `The price increase at round ${cfg.hikeRound} did the damage. To these customers a rise stings about ${lam}x as much as the same-size discount would please them, so the ones who keep score started shopping the moment it landed.`;
   else if (thinValue && churnPct >= 15)
@@ -446,7 +446,8 @@ export function bandPhrase(world: CustomerWorld, s: WorldSweep): { tone: Layman[
 // than invented money. Names the promo leak when it is material.
 export function unitEconomics(cfg: SimConfig, r: SimResult): string {
   const perCust = r.totalRevenue / (r.startingActive || 1) / (cfg.priceIndex || 100);
-  let s = `Each starting customer brought in about ${perCust.toFixed(1)} rounds of full-price revenue over the ${cfg.rounds}-round run.`;
+  const rr = Math.round(perCust);
+  let s = `Each starting customer brought in about ${rr} round${rr === 1 ? "" : "s"} of full-price revenue over the ${cfg.rounds}-round run.`;
   if (r.exploitationCost > r.totalRevenue * 0.08) {
     const leak = Math.round((r.exploitationCost / r.totalRevenue) * 100);
     s += ` Roughly ${leak}% of revenue leaked straight back out defending churn with the promo.`;
@@ -588,6 +589,7 @@ export interface DecodedRunLink {
   state: RunLinkState;
   engineVersion: string;   // the engine the link was authored against
   linkVersion: number;     // token schema version
+  view?: string;           // presentation tier the author shared from (absent = student)
 }
 
 const LINK_SCHEMA = 1;
@@ -617,7 +619,7 @@ function b64urlToBytes(token: string): Uint8Array {
   return out;
 }
 
-export function encodeRunLink(s: RunLinkState): string {
+export function encodeRunLink(s: RunLinkState, view?: string): string {
   const enc = (z: BizInput) => ({
     n: z.name, s: z.sell, m: z.model?.trim() || undefined,
     p: z.price, q: z.value, r: z.retention, t: z.threat,
@@ -625,6 +627,11 @@ export function encodeRunLink(s: RunLinkState): string {
   const payload = {
     v: LINK_SCHEMA,
     e: ENGINE_VERSION,
+    // Presentation-only: the depth tier the author shared from, so a faculty
+    // answer key reopens at the depth it was finished at. Omitted for a plain
+    // Student share (and every pre-existing link), which decodes to the clean
+    // Student read. Never affects the numbers; the engine inputs are unchanged.
+    ...(view === "teaching" || view === "deep" ? { vw: view } : {}),
     b: enc(s.biz),
     c: s.compare ? 1 : 0,
     fr: s.fragility ? 1 : 0,
@@ -702,10 +709,12 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
         }
       : { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
 
+    const VIEWS = ["student", "teaching", "deep"];
     return {
       state: { biz, bizB, compare, fragility, selected, adv, fin },
       engineVersion: typeof raw.e === "string" ? raw.e : "unknown",
       linkVersion: typeof raw.v === "number" ? raw.v : 0,
+      view: typeof raw.vw === "string" && VIEWS.includes(raw.vw) ? raw.vw : undefined,
     };
   } catch {
     return null;

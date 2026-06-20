@@ -445,8 +445,13 @@ function FragilityBlock({ frags }: { frags: FragilityResult[] }) {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────
-const DEFAULT_BIZ: BizInput = { ...EXAMPLES[0] };
-const DEFAULT_BIZ_B: BizInput = { ...EXAMPLES[1] };
+// Cold open is BLANK, not a worked example: a fresh visitor must never see a
+// verdict on a business they didn't set. The form starts empty (neutral moves),
+// and the result column shows instructions until the visitor runs or opens a
+// link. Examples are one tap away via the chips on the form.
+const EMPTY_BIZ: BizInput = { name: "", sell: "", price: "hold", value: "par", retention: "none", threat: "none" };
+const DEFAULT_BIZ: BizInput = { ...EMPTY_BIZ };
+const DEFAULT_BIZ_B: BizInput = { ...EMPTY_BIZ };
 const DEFAULT_SELECTED: Record<string, boolean> = { mainstream: true, fickle: true, loyal: true, skeptic: false, grudge: false };
 const DEFAULT_ADV = { rounds: 40, lossAversion: 2.25, difficulty: "normal" as Difficulty, anchorShift: 0, anchorRound: 0 };
 const DEFAULT_FIN: FinanceInput = { launchPrice: 0, marginPct: 60, cac: 0, discountPct: 1 };
@@ -503,7 +508,7 @@ export default function Page() {
     const teaching = chosen.length ? teachingPrompt(ran.biz, chosen, ran.adv.lossAversion) : "";
     const band = sweeps.length ? referenceBand(ran.biz, advEng) : null;
     if (band && sweeps.length >= 1 && band.spread >= 8) {
-      synth += ` Across all five customer worlds (not only the ones you picked) this business usually ends with between about ${band.lo} and ${band.hi} per 100 started, so where it lands is mostly about which crowd it meets.`;
+      synth += ` For reference, the engine also scores this business against the worlds you didn't pick: across all ${WORLDS.length} customer worlds it knows, the typical run lands between about ${band.lo} and ${band.hi} per 100 started, so where it ends up is mostly about which crowd it meets.`;
     }
     const finRows = sweeps.map((s) => ({ world: s.world, fin: financeBand(s, ran.fin) }));
     const cmp = ran.compare && chosen.length ? compareBusinesses(ran.biz, ran.bizB, chosen, advEng) : null;
@@ -533,7 +538,10 @@ export default function Page() {
     setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
     setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
     setExpanded(true);   // a shared link is a finished artifact: open it fully, never the teaser
-    setView("student");   // a shared link is a finished artifact; open it in the clean read, not the configurer's controls
+    // Open at the depth the author shared from, so a faculty answer key keeps its
+    // finance/methodology depth. A plain student share carries no tier and opens
+    // in the clean Student read, as every pre-existing link still does.
+    setView(decoded.view === "teaching" || decoded.view === "deep" ? decoded.view : "student");
     // Surface an engine mismatch ONLY when the result would actually differ. An
     // anchor-off 2.0.0 link reproduces byte-for-byte on 2.1.0 (off-path identity),
     // so warning on it would be a false alarm; runLinkReproducesExactly gates that.
@@ -543,7 +551,7 @@ export default function Page() {
   // Copy a link that reproduces the DISPLAYED run (ran), not the live inputs.
   function copyRunLink() {
     if (typeof window === "undefined") return;
-    const token = encodeRunLink(ran);
+    const token = encodeRunLink(ran, view);
     const url = `${window.location.origin}${window.location.pathname}?r=${token}`;
     navigator.clipboard?.writeText(url).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); });
   }
@@ -827,6 +835,8 @@ export default function Page() {
           )}
 
           <div id="result-printable">
+            {expanded && (
+            <>
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
               <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
               {deep ? (
@@ -838,14 +848,19 @@ export default function Page() {
               )}
             </div>
             <p className="text-xs text-muted-fg mb-4 max-w-3xl">A structural model for seeing how customer types react to your moves, not a forecast of real-world numbers. The value is the mechanism and the comparison, not the exact count.</p>
+            </>
+            )}
 
-            {!expanded && derived.sweeps.length > 0 ? (
-              <div className="rounded-xl border border-primary bg-primary/10 p-5">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-2">A worked example is loaded</h3>
-                {derived.synth
-                  ? <p className="text-[15px] leading-relaxed mb-4">{derived.synth}</p>
-                  : <p className="text-[15px] leading-relaxed mb-4">{ran.biz.name || "This business"} is set up and ready. Edit it on the left and run, or open the full read of the loaded example.</p>}
-                <button onClick={() => setExpanded(true)} className="rounded-lg bg-primary hover:bg-primary-light text-white text-sm font-medium px-4 py-2 transition-colors">See the full analysis →</button>
+            {!expanded ? (
+              <div className="rounded-xl border border-card-border bg-card p-6">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-3">How this works</h3>
+                <p className="text-[15px] leading-relaxed mb-4">This is a stress test, not a forecast. You define one business in plain terms, choose which customer crowds to drop it into, and the engine plays your moves out over many rounds to see who stays and who leaves.</p>
+                <ol className="text-[15px] leading-relaxed space-y-2 mb-4 list-decimal pl-5">
+                  <li>Describe your business on the left: name it, say what you sell, and set the four moves (price, value, what keeps customers, the competitive threat). Or tap an example to start from one.</li>
+                  <li>Pick the customer worlds to test against. The same business can hold up with one crowd and fall apart with another, and that contrast is the lesson.</li>
+                  <li>Run the stress test.</li>
+                </ol>
+                <p className="text-sm text-muted-fg leading-relaxed">Same inputs always give the same result, so any run can be shared, graded, and reproduced. This is a transparent, rule-based engine you can audit, not an AI guessing how customers feel.</p>
               </div>
             ) : (
             <>
