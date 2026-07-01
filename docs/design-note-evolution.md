@@ -1,9 +1,10 @@
 # Customer Model — Evolution layer (2.3.0 challenger) pre-registration
 
-Status: CHALLENGER, not promoted. Champion stays ENGINE_VERSION 2.2.0, byte
-identical. This is the pre-registration required before the layer is surfaced or the
-version is bumped, written before the sweep verdict. Module: src/lib/evolution.ts.
-Gates: sweep-evolution.ts.
+Status: PROMOTED to ENGINE_VERSION 2.3.0 (2026-06-30). Was a CHALLENGER; sweep-evolution.ts
+passed all four pre-registered gates (G1-G4) at champion 2.2.0 and again after the bump, so
+the layer was promoted per the plan below. The champion perception core is byte-identical
+(default revenue 1762833 unchanged); 2.3.0 only ADDS the Deep-only, off-by-default layer.
+This pre-registration is kept as the written record the sweep was gated against.
 
 ## Why this exists
 The 2.2.0 engine runs one market episode with a FIXED archetype mix. Agents only

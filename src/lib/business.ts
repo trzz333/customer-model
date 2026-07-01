@@ -16,6 +16,7 @@ import {
   type StratKey,
 } from "./sim";
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
+import { runEvolution, EVO_DEFAULTS, type EvoConfig, type EvoResult } from "./evolution";
 
 export type PriceMove = "cut" | "hold" | "raiseS" | "raiseB";
 export type ValuePosture = "premium" | "par" | "thin";
@@ -289,6 +290,28 @@ export function businessToCfg(biz: BizInput, world: CustomerWorld, adv?: AdvOver
   if (adv?.anchorShift !== undefined) c.anchorShift = Math.max(-20, Math.min(20, adv.anchorShift));
   if (adv?.anchorRound !== undefined) c.anchorRound = Math.max(0, Math.min(c.rounds, Math.round(adv.anchorRound)));
   return c;
+}
+
+// ── Evolution (2.3.0) Deep-surface read ──────────────────────────────
+// The off-by-default selection layer, wired for the Deep tier. It asks a question
+// the single-episode engine can't: under THIS business's sustained policy, which
+// customer archetypes get selected FOR and which crowd OUT, and what does the base
+// settle into. It measures a retention payoff matrix from the frozen core, then runs
+// the seeded Moran ensemble (src/lib/evolution.ts). Reproducibility: like REF_SEEDS,
+// the dynamics params and runSeed are FIXED constants pinned by ENGINE_VERSION, so the
+// surface regenerates from the run-link's single evolution flag — no raw seed travels.
+// World-neutral by construction: the base carries the policy levers only; measureMatrix
+// overwrites `mix`, and presentBias (a customer-world trait, not a policy) is reset to
+// the engine default, so the result is a pure function of the business policy.
+export const EVO_SURFACE = { rule: "moran" as const, runSeed: 20260630, generations: 20000, replicates: 16 };
+export function evolutionRead(biz: BizInput, adv?: AdvOverride): EvoResult {
+  const base: SimConfig = { ...businessToCfg(biz, WORLDS[0], adv), presentBias: DEFAULT_CONFIG.presentBias };
+  const cfg: EvoConfig = {
+    base, ...EVO_DEFAULTS,
+    rule: EVO_SURFACE.rule, runSeed: EVO_SURFACE.runSeed,
+    generations: EVO_SURFACE.generations, replicates: EVO_SURFACE.replicates,
+  };
+  return runEvolution(cfg);
 }
 
 // ── Results  →  plain-language analysis (Kahneman: concrete counts,
@@ -581,6 +604,7 @@ export interface RunLinkState {
   bizB: BizInput;
   compare: boolean;
   fragility: boolean;
+  evolution: boolean;
   selected: Record<string, boolean>;
   adv: { rounds: number; lossAversion: number; difficulty: Difficulty; anchorShift: number; anchorRound: number };
   fin: FinanceInput;
@@ -635,6 +659,11 @@ export function encodeRunLink(s: RunLinkState, view?: string): string {
     b: enc(s.biz),
     c: s.compare ? 1 : 0,
     fr: s.fragility ? 1 : 0,
+    // Evolution flag emitted ONLY when the layer is on, so an evolution-off run
+    // produces a byte-identical token to the pre-2.3.0 schema (and to every link
+    // shared before the layer existed). A decoder treats its absence as off. The
+    // surface params/seed are pinned constants (EVO_SURFACE), so one bit regenerates it.
+    ...(s.evolution ? { ev: 1 } : {}),
     bb: s.compare ? enc(s.bizB) : undefined,
     w: WORLDS.filter((w) => s.selected[w.key]).map((w) => w.key),
     // Anchor fields are emitted ONLY when the frame is on, so an anchor-off run
@@ -676,6 +705,7 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
     const biz = decBiz(raw.b);
     const compare = raw.c === 1 || raw.c === true;
     const fragility = raw.fr === 1 || raw.fr === true;
+    const evolution = raw.ev === 1 || raw.ev === true;
     const bizB = raw.bb ? decBiz(raw.bb) : { name: "", sell: "", price: "hold" as PriceMove, value: "par" as ValuePosture, retention: "none" as Retention, threat: "none" as Threat };
 
     const wkeys = new Set(WORLDS.map((w) => w.key));
@@ -711,7 +741,7 @@ export function decodeRunLink(token: string): DecodedRunLink | null {
 
     const VIEWS = ["student", "teaching", "deep"];
     return {
-      state: { biz, bizB, compare, fragility, selected, adv, fin },
+      state: { biz, bizB, compare, fragility, evolution, selected, adv, fin },
       engineVersion: typeof raw.e === "string" ? raw.e : "unknown",
       linkVersion: typeof raw.v === "number" ? raw.v : 0,
       view: typeof raw.vw === "string" && VIEWS.includes(raw.vw) ? raw.vw : undefined,
@@ -731,18 +761,25 @@ function clampInt(v: unknown, lo: number, hi: number, fb: number): number {
 
 // Whether a decoded link reproduces EXACTLY on the reader's engine, so the UI can
 // suppress a spurious "engine mismatch" banner when the result is provably identical.
-// Same version: always exact. Cross-version: only the 2.0.0 <-> 2.1.0 pair is
-// result-identical, and only when the link's anchor frame is off — 2.1.0's sole
-// delta from 2.0.0 is the reference-price path, which is inert at anchorShift 0
-// (the off-path-identity gate in sweep-anchor.ts). Every other version gap (e.g. a
-// future reputation-memory bump) changes the numbers and MUST surface. Conservative
-// by default: unknown pairs are treated as NOT reproducing, so the banner shows.
+// Same version: always exact. Cross-version, only the adjacent pairs whose sole delta
+// is an OFF-by-default layer are result-identical:
+//   2.0.0 <-> 2.1.0 : identical iff the anchor frame is off (2.1.0's only delta is the
+//     reference-price path, inert at anchorShift 0 — the sweep-anchor off-path gate).
+//   2.2.0 <-> 2.3.0 : the champion core is byte-identical (2.3.0 only ADDS the Deep-only
+//     evolution layer and never touches sim.ts), so the graded HEADLINE run reproduces
+//     whenever the evolution layer is off. With it on, the shared artifact carries an
+//     evolution surface the 2.2.0 engine cannot produce, so the mismatch must surface.
+// Every other version gap changes the numbers and MUST surface. Conservative by default:
+// unknown pairs are treated as NOT reproducing, so the banner shows.
 export function runLinkReproducesExactly(decoded: DecodedRunLink, currentEngine: string): boolean {
   const authored = decoded.engineVersion;
   if (authored === currentEngine) return true;
   const pair = new Set([authored, currentEngine]);
   const isAnchorPair = pair.size === 2 && pair.has("2.0.0") && pair.has("2.1.0");
-  return isAnchorPair && decoded.state.adv.anchorShift === 0;
+  if (isAnchorPair) return decoded.state.adv.anchorShift === 0;
+  const isEvoPair = pair.size === 2 && pair.has("2.2.0") && pair.has("2.3.0");
+  if (isEvoPair) return decoded.state.evolution === false;
+  return false;
 }
 
 

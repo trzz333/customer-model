@@ -38,9 +38,13 @@ const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x
 // per-round series so far — average-dominant, with a first-impression term and
 // modest extreme-peak and recency corrections (REP_MEMORY below). At identity
 // weights {avg:0,first:0,peak:0,end:1} the memory equals the current reputation, so
-// 2.2.0 reproduces 2.1.0 byte-for-byte. Evolve by versioned release,
-// never by silent runtime auto-tuning.
-export const ENGINE_VERSION = "2.2.0";
+// 2.2.0 reproduces 2.1.0 byte-for-byte. 2.3.0 = an added, Deep-only, off-by-default
+// EVOLUTION (Moran/replicator) selection layer (src/lib/evolution.ts) that measures a
+// retention payoff matrix from THIS frozen core and asks which archetypes a sustained
+// policy selects for. It never edits this file; with the layer off, 2.3.0 reproduces
+// 2.2.0 byte-for-byte (the champion core here is unchanged — only the release label
+// moved). Evolve by versioned release, never by silent runtime auto-tuning.
+export const ENGINE_VERSION = "2.3.0";
 
 // ── Reference-dependent perception constants ─────────────────────────
 // The customer judges each round against an adapting reference point. The

@@ -28,6 +28,7 @@ import {
   runsToCsv,
   fragilityScan,
   fragilityPhrase,
+  evolutionRead,
   TERM_DEFS,
   ARCH_DEF,
   DIFFICULTY_NOISE,
@@ -444,6 +445,53 @@ function FragilityBlock({ frags }: { frags: FragilityResult[] }) {
   );
 }
 
+// ── Evolution block (2.3.0, Deep-only) ───────────────────────────────
+// Shows what a sustained policy SELECTS FOR: the settled archetype composition
+// from the seeded Moran ensemble, the plain verdict, and any fragility warning.
+// The verdict + warnings carry NO export-hidden class and no toggle, so they are
+// in every saved copy by construction (the save-button invariant), same as WorldCard.
+// Labeled a stochastic-but-seeded layer that regenerates exactly from the run-link,
+// and carries the 2-type teaching-reduction caveat wherever the layer is surfaced.
+function EvolutionBlock({ evo }: { evo: ReturnType<typeof evolutionRead> }) {
+  const meta = Object.fromEntries(ARCHETYPES.map((a) => [a.key, { name: a.name, color: a.color }]));
+  const rows = evo.keys
+    .map((k, i) => ({ k, name: meta[k]?.name ?? k, color: meta[k]?.color ?? "var(--color-muted-fg)", share: evo.settledMean[i], band: evo.settledBand[i] }))
+    .sort((a, b) => b.share - a.share);
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  return (
+    <div className="rounded-xl border border-card-border bg-card p-5 mb-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light mb-1">What this policy selects for</h3>
+      <p className="text-[13.5px] leading-relaxed text-muted-fg mb-3">
+        The single run holds the customer mix fixed. This layer lets the mix <b className="text-foreground">evolve</b>: it measures how each archetype is retained under your sustained moves, then lets better-retained types grow as a share of the base over many seeded rounds. The bars are where the base settles.
+      </p>
+      <div className="space-y-1.5 mb-3">
+        {rows.map((r) => (
+          <div key={r.k} className="flex items-center gap-2.5">
+            <div className="w-40 shrink-0 text-[13px] text-foreground truncate">{r.name}</div>
+            <div className="flex-1 h-2.5 rounded-full bg-card-muted overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, r.share)) * 100}%`, background: r.color }} />
+            </div>
+            <div className="w-24 shrink-0 text-right text-[13px] tabular-nums text-muted-fg">
+              {pct(r.share)}{r.band.hi - r.band.lo >= 0.03 ? <span className="text-[11px]"> ({pct(r.band.lo)}–{pct(r.band.hi)})</span> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[14px] leading-relaxed"><b className="text-foreground">Selection verdict:</b> {evo.verdict}</p>
+      {evo.warnings.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2.5">
+          {evo.warnings.map((w, i) => (
+            <span key={i} className="text-xs rounded-full px-2.5 py-1 border border-warn/40 text-warn bg-warn/10">{w}</span>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-fg mt-3 leading-relaxed">
+        Stochastic in mechanism, reproducible in output: a seeded ensemble (Moran process with a Fermi update, prior art Traulsen-Pacheco-Nowak 2007; Fudenberg-Imhof 2006), so this regenerates bit-for-bit from the run-link. It reads retention as a 2-type payoff matrix, a deliberate teaching reduction of the full multi-type engine, not a claim the engine is a 2x2 game. Engine {ENGINE_VERSION}.
+      </p>
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────
 // Cold open is BLANK, not a worked example: a fresh visitor must never see a
 // verdict on a business they didn't set. The form starts empty (neutral moves),
@@ -460,17 +508,18 @@ const DEFAULT_EXPORT = { model: true, teaching: true, charts: true, numbers: tru
 type View = "student" | "teaching" | "deep";
 type Emphasis = "behavioral" | "finance";
 type ExportSel = typeof DEFAULT_EXPORT;
-interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; fragility: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
+interface RanState { biz: BizInput; bizB: BizInput; compare: boolean; fragility: boolean; evolution: boolean; selected: Record<string, boolean>; adv: typeof DEFAULT_ADV; fin: FinanceInput }
 
 export default function Page() {
   const [biz, setBiz] = useState<BizInput>(DEFAULT_BIZ);
   const [bizB, setBizB] = useState<BizInput>(DEFAULT_BIZ_B);
   const [compare, setCompare] = useState(false);
   const [fragility, setFragility] = useState(false);
+  const [evolution, setEvolution] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>(DEFAULT_SELECTED);
   const [adv, setAdv] = useState(DEFAULT_ADV);
   const [fin, setFin] = useState<FinanceInput>(DEFAULT_FIN);
-  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, bizB: DEFAULT_BIZ_B, compare: false, fragility: false, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
+  const [ran, setRan] = useState<RanState>({ biz: DEFAULT_BIZ, bizB: DEFAULT_BIZ_B, compare: false, fragility: false, evolution: false, selected: DEFAULT_SELECTED, adv: DEFAULT_ADV, fin: DEFAULT_FIN });
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [loadedEngine, setLoadedEngine] = useState<string | null>(null);
@@ -490,6 +539,7 @@ export default function Page() {
   // records that a non-default frame was in play (the result already reflects it).
   const anchorOn = ran.adv.anchorShift > 0;
   const anchorTag = anchorOn ? ` · ref +${ran.adv.anchorShift}@r${ran.adv.anchorRound}` : "";
+  const evoTag = ran.evolution ? " · selection layer on" : "";
 
   const derived = useMemo(() => {
     const advEng = { rounds: ran.adv.rounds, lossAversion: ran.adv.lossAversion, noise: DIFFICULTY_NOISE[ran.adv.difficulty], anchorShift: ran.adv.anchorShift, anchorRound: ran.adv.anchorRound };
@@ -513,14 +563,17 @@ export default function Page() {
     const finRows = sweeps.map((s) => ({ world: s.world, fin: financeBand(s, ran.fin) }));
     const cmp = ran.compare && chosen.length ? compareBusinesses(ran.biz, ran.bizB, chosen, advEng) : null;
     const frag = ran.fragility && chosen.length ? chosen.map((w) => fragilityScan(ran.biz, w, advEng)) : null;
-    return { sweeps, synth, teaching, band, finRows, cmp, frag };
+    // Evolution is WORLD-INDEPENDENT (it asks what the policy selects for across the
+    // whole archetype space), so it doesn't need a chosen world; gate on the flag only.
+    const evo = ran.evolution ? evolutionRead(ran.biz, advEng) : null;
+    return { sweeps, synth, teaching, band, finRows, cmp, frag, evo };
   }, [ran]);
 
-  const stale = JSON.stringify({ biz, bizB, compare, fragility, selected, adv, fin }) !== JSON.stringify(ran);
+  const stale = JSON.stringify({ biz, bizB, compare, fragility, evolution, selected, adv, fin }) !== JSON.stringify(ran);
   const setField = (k: keyof BizInput, v: string) => setBiz((b) => ({ ...b, [k]: v }));
   const setFieldB = (k: keyof BizInput, v: string) => setBizB((b) => ({ ...b, [k]: v }));
   const toggleWorld = (k: string) => setSelected((s) => ({ ...s, [k]: !s[k] }));
-  function run() { setRan({ biz, bizB, compare, fragility, selected, adv, fin }); setLoadedEngine(null); setExpanded(true); }
+  function run() { setRan({ biz, bizB, compare, fragility, evolution, selected, adv, fin }); setLoadedEngine(null); setExpanded(true); }
 
   // Load a shared run-link on first mount: decode ?r and apply it to the inputs
   // AND to `ran`, so the identical result renders immediately. The link re-runs
@@ -534,9 +587,9 @@ export default function Page() {
     if (!token) return;
     const decoded = decodeRunLink(token);
     if (!decoded) return;
-    const { biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f } = decoded.state;
-    setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setSelected(s); setAdv(a); setFin(f);
-    setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, selected: s, adv: a, fin: f });
+    const { biz: b, bizB: bb, compare: cm, fragility: fr, evolution: ev, selected: s, adv: a, fin: f } = decoded.state;
+    setBiz(b); setBizB(bb); setCompare(cm); setFragility(fr); setEvolution(ev); setSelected(s); setAdv(a); setFin(f);
+    setRan({ biz: b, bizB: bb, compare: cm, fragility: fr, evolution: ev, selected: s, adv: a, fin: f });
     setExpanded(true);   // a shared link is a finished artifact: open it fully, never the teaser
     // Open at the depth the author shared from, so a faculty answer key keeps its
     // finance/methodology depth. A plain student share carries no tier and opens
@@ -784,6 +837,16 @@ export default function Page() {
               )}
               </details>
 
+              {deep && (
+                <div className="mt-3 border-t border-card-border pt-3">
+                  <button onClick={() => setEvolution((c) => !c)}
+                    className={`w-full text-left flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors ${evolution ? "border-primary bg-primary/10" : "border-card-border bg-card-muted hover:border-primary"}`}>
+                    <span className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center text-[10px] ${evolution ? "bg-primary border-primary text-white" : "border-muted-fg"}`}>{evolution ? "✓" : ""}</span>
+                    <span><span className="text-sm font-medium">Selection dynamics</span><span className="block text-xs text-muted-fg leading-snug">Let the customer mix evolve under your policy. Which types get selected for, which crowd out, and what the base settles into. Seeded, reproducible.</span></span>
+                  </button>
+                </div>
+              )}
+
               <details className="mt-3 border-t border-card-border pt-3" open={financeLed}>
                 <summary className="cursor-pointer text-xs uppercase tracking-wider font-semibold text-muted-fg">Finance — optional unit economics</summary>
                 <p className="text-xs text-muted-fg my-2">Put real numbers on the run: cohort LTV, NPV, and CAC payback in dollars. Leave price at 0 to keep the unit-free read. The simulation is unchanged; this only reads its output in money.</p>
@@ -840,7 +903,7 @@ export default function Page() {
             <div className="mb-1 flex items-baseline justify-between flex-wrap gap-2">
               <h2 className="text-xl font-semibold">{ran.biz.name || "Your business"}{ran.biz.sell ? <span className="text-muted-fg text-sm font-normal"> ({ran.biz.sell})</span> : null}</h2>
               {deep ? (
-                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · {DIFFICULTY_LABEL[ran.adv.difficulty]}{anchorTag} · engine {ENGINE_VERSION}</span>
+                <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · λ {ran.adv.lossAversion.toFixed(2)} · {DIFFICULTY_LABEL[ran.adv.difficulty]}{anchorTag}{evoTag} · engine {ENGINE_VERSION}</span>
               ) : view === "teaching" ? (
                 <span className="text-sm text-muted-fg tabular-nums">{ran.adv.rounds} rounds · {DIFFICULTY_LABEL[ran.adv.difficulty]}{anchorTag} · engine {ENGINE_VERSION}</span>
               ) : (
@@ -904,6 +967,10 @@ export default function Page() {
               <div className={exp.fragility ? "" : "export-hidden"}>
                 <FragilityBlock frags={derived.frag} />
               </div>
+            )}
+
+            {deep && ran.evolution && derived.evo && (
+              <EvolutionBlock evo={derived.evo} />
             )}
 
             {hasControls && ran.fin.launchPrice > 0 && derived.sweeps.length > 0 && (
