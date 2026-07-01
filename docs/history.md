@@ -841,3 +841,50 @@ single-sources it; the 2.0.0 the reviewer saw was a stale earlier deploy. No act
 
 Validation: npm run typecheck clean; npm run build green at / 27.7 kB (was 27.3).
 Commit dc5da7f, scoped add of src/app/page.tsx + src/lib/business.ts, pushed.
+
+
+## 2026-06-30 — Evolution (EGT / Moran) challenger built and committed (not promoted)
+
+Jeff deliberately reopened the deterministic-core decision to add an evolutionary
+selection layer, with one hard invariant he and Claude agreed on: stochastic in
+mechanism must still mean reproducible in output, so every published run regenerates
+bit for bit from its seed. This is a legitimate product-owner reopening of a locked
+call, not drift; the reproducibility invariant is what keeps the tool honest.
+
+Prior-art pass (verified, do not re-derive): evolutionary dynamics on Axelrod
+strategies is foundational, not novel. Axelrod's own 1984 ecological model evolves
+strategy shares by the payoff matrix; the Axelrod-Python library ships Moran plus
+ecological today. Fudenberg and Imhof 2006 give the small-mutation stationary
+distribution over monomorphic states in closed form from pairwise fixation. Traulsen,
+Pacheco and Nowak 2007 give the Fermi pairwise-comparison update with a selection
+temperature beta. Hindersin et al. 2019 give the fixation numerics. The order-
+dependence / fragility problem is solved prior art: Common Random Numbers with per-
+entity identity-keyed substreams (L'Ecuyer RngStream; Starsim/Covasim 2024, arXiv
+2409.02086) makes differences come from mechanism, not draw order. QRE (McKelvey and
+Palfrey 1995) and risk-averse QRE (Mazumdar 2025) are the staged next stochastic-
+choice lever, not built this turn.
+
+Built and committed (e4025ec): src/lib/evolution.ts, an isolated module that wraps
+the frozen 2.2.0 runSimulation without touching it. It measures a retention payoff
+matrix M from the real engine (probe frequency 0.12, fitnessPop 400, fixed
+fitnessSeed 991 so M is pure), then runs either a deterministic replicator or a
+stochastic Fermi/Moran ensemble (slots 60, beta 6, mutation 0.02, replicates 24) with
+mean-field frequency-dependent fitness. Reproducibility spine is subRng, a CRN
+substream keyed by (runSeed, rep, step, channel), so replicate r depends only on
+(runSeed, r) and the ensemble is order-independent. Also includes the closed-form
+Fermi fixation probability and the small-mutation analytic stationary distribution as
+the theory anchor. EVOLUTION_ENGINE_TAG "2.3.0-evo.challenger". A settled-composition
+verdict plus fragility warning (concentration into Inertial Loyalists, who leave in
+one wave, or One-Strike Grudgers) is carried in the result for the save invariant.
+
+Champion untouched, git-verified: the only files this session are evolution.ts and
+docs/design-note-evolution.md; sim.ts, business.ts, page.tsx unchanged. ENGINE_VERSION
+stays 2.2.0, nothing imports the module, / bundle unchanged at 27.7 kB, typecheck and
+build green. The module is NOT promoted: no version bump, no run-link fields, no UI.
+
+Pre-registration in docs/design-note-evolution.md, with gates G1 champion untouched,
+G2 regeneration, G3 order-independence, G4 fixation-formula Monte Carlo vs closed
+form; the multi-type stationary-vs-ensemble comparison is a diagnostic, not a hard
+gate, because mixing time makes it seed-count sensitive. The sweep itself
+(sweep-evolution.ts) was NOT written this session; it is the next action. A G4 fail
+is an acceptable honest outcome, not a thing to fudge.

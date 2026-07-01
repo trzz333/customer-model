@@ -2,8 +2,9 @@
 
 State doc. Terse by design. Resolved detail lives in docs/history.md. Roadmap,
 v2 parking lot, and the LLM-voice recommendation live in docs/plan.md. The v2
-build spec, pre-registered sweeps, the caveat-reconciliation literature pass, and
-the RESOLVED taste-fork decisions live in docs/design-note-v2.md.
+build spec, pre-registered sweeps, and RESOLVED taste-fork decisions live in
+docs/design-note-v2.md. The evolution challenger's pre-registration lives in
+docs/design-note-evolution.md.
 
 ## PROJECT
 A business-school AI tool: a deterministic, game-theory + behavioral-economics
@@ -11,155 +12,105 @@ simulation that stress-tests a business model against synthetic customer
 archetypes. Live at https://customer-model.council.fyi.
 
 ## PHASE
-v2 BUILD, engine roadmap COMPLETE. Mechanisms #1 (retention vocabulary), #2
-(anchoring, fully wired: engine + Teaching/Deep dial + Student teachable note +
-run-link persistence), #3 (peak-end memory) all SHIPPED; the optional peak-end
-negative-peak refinement was tested and CLOSED not-material. Engine is ENGINE_VERSION
-2.2.0, unchanged for several sessions and stable. Social unfurl (LinkedIn/OG) and the
-governing-principle polish (ad72814) shipped in prior sessions. This session shipped
-the BLANK cold open (no default business) plus four cold-instructor-review defect
-fixes (dc5da7f); UI-only, engine untouched. The next substantive item is a
-product/values fork (the LLM voice layer): Jeff accepted the recommendation on
-2026-06-19, so the DIRECTION is now locked (narration-first), but the build is its own
-dedicated session, not yet started. Engine freeze is LIFTED (standing).
+v2 SHIPPED and stable at ENGINE_VERSION 2.2.0. New active thread: an EVOLUTION
+(EGT / Moran) challenger. Jeff deliberately reopened the deterministic-core lock
+on 2026-06-30 to add a stochastic selection layer, under the hard invariant that
+stochastic in mechanism still means reproducible in output (seed regenerates the
+run bit for bit). The challenger MODULE is built, committed, and isolated; it is
+NOT promoted. The LLM voice layer is still a separate, later, unstarted session.
 
 ## LAST COMMIT
-dc5da7f — fix(ui): blank cold open + reviewer defects (no default business). The
-landing no longer pre-loads a worked example: the form starts empty (neutral moves),
-the result column shows a How-this-works instructions panel, and the run header is
-gated to the post-run state. The same commit fixes four cold-instructor-review
-defects (threat-lever narrative wording, 3-vs-5 worlds framing, whole-round LTV read,
-run-link tier fidelity). Engine 2.2.0 untouched. typecheck clean, build green at /
-27.7 kB; run-link round-trip + back-compat smoke 10/10.
-Re-confirm HEAD with git rev-parse; don't trust a hardcoded hash.
+e4025ec — feat(evo): 2.3.0 evolution challenger module + pre-registration. Adds
+src/lib/evolution.ts (isolated; wraps the frozen runSimulation, never edits it) and
+docs/design-note-evolution.md. Champion path git-verified untouched, ENGINE_VERSION
+still 2.2.0, nothing imports the module, / bundle unchanged at 27.7 kB, typecheck and
+build green. Re-confirm HEAD with git rev-parse; do not trust a hardcoded hash.
 
 ## CURRENT STATE
-Define one business in plain terms, run it across named customer worlds. Engine
-2.2.0 is a seeded agent-based Monte Carlo on a reference-dependent logit core (λ
-2.25, headline a band), with reference-price anchoring and peak-end reputation
-memory live. Retention now names six live mechanisms (none, loyalty, standing
-promo, default/auto-renew, switching cost, contract); the old combined "lock-in"
-is RETIRED to a decode-only legacy key so old shared run-links still decode and
-reproduce byte-identically (friction 72 unchanged). Friction map is monotone:
-none 18 < promo 32 < loyalty 45 < default 52 < switchcost 58 < contract 68 <
-lockin 72. The landing opens BLANK in every mode: the form starts empty (neutral
-moves, no default business) and the result column shows a How-this-works
-instructions panel until the visitor runs or opens a run-link. Export stays gated
-to the post-run (expanded) state, so the save invariant is unchanged; the old
-summary-first worked-example teaser is RETIRED. Run-links now carry the author's
-depth tier (`vw`, Teaching/Deep only) so a faculty answer key reopens at its
-finished depth; a plain student share or any pre-existing link omits it and opens
-the clean Student read (byte-identical token, verified 10/10 smoke). Anchoring: the dial stays Teaching/Deep, but the
-reference-price frame is now teachable in the Student read via a plain glossary
-term and one anchoring-GATED sentence shown only when a faculty run-link turns the
-frame on. All v1/v2 surfaces remain: per-world cards (verdict + warn chips), A/B
-compare + inversion finder, fragility sweep, seeded run-link, /glossary, per-round
-CSV, three depth tiers + Finance toggle. The site now unfurls on LinkedIn/social: root
-layout exports openGraph + twitter metadata and a 1200x630 src/app/opengraph-image.png
-via Next's file convention.
+The live site is exactly 2.2.0, functionally unchanged: define one business in plain
+terms, run it across named customer worlds; seeded agent-based Monte Carlo on a
+reference-dependent logit core (λ 2.25, headline a band), with reference-price
+anchoring and peak-end reputation memory. New on disk (not live-visible): a Moran-
+adjacent evolution layer in src/lib/evolution.ts. It measures a retention payoff
+matrix from the real engine, then runs a deterministic replicator or a stochastic
+Fermi/Moran ensemble with mutation, plus a closed-form pairwise fixation and the
+small-mutation analytic stationary distribution. Its reproducibility spine is CRN
+substreams keyed by (runSeed, rep, step, channel), so the ensemble is order-
+independent and regenerates from runSeed. It carries a settled-composition verdict
+and fragility warnings. Nothing imports it; the champion is byte-identical.
 
 ## NEXT MOVE
-Build the LLM VOICE LAYER in a dedicated session — direction LOCKED 2026-06-19 (Jeff
-accepted the recommendation). Form: narration-first (interpret the engine numbers,
-tailor by reader role), single model, low temperature, grounded in the per-segment
-series; cached/pinned to the run-link token so a graded artifact stays stable; clearly
-labeled as the one non-reproducible layer on top of the deterministic core. Autofill
-(input-side parsing) is lower priority and only acceptable if the parsed levers are
-shown and editable. START THE BUILD WITH ITS OWN PRE-REGISTRATION before any code:
-cost, latency, classroom-scale rate limits, the mid-class failure/fallback mode, and
-the paste->prompt-injection surface; decide model + prompt contract + cache key +
-overclaim guard up front. @anthropic-ai/sdk is already present (unused). The v2
-engine-mechanism roadmap stays COMPLETE at 2.2.0; the governing-principle polish is
-DONE (ad72814). Remaining non-voice polish, all optional and non-load-bearing:
-later-version held mechanisms (decoy tier, network effects, reciprocity, brand — held,
-not greenlit), or emailing Bonner the live link (Jeff's call, not drafted).
+Write and run sweep-evolution.ts at the repo ROOT (excluded from tsconfig by glob),
+run via `npx --yes tsx sweep-evolution.ts`. Gates, pre-registered in
+design-note-evolution.md: G1 champion untouched, G2 regeneration (same runSeed
+deep-equal; different seed moves), G3 order-independence (forward vs reversed replicate
+order aggregate identically; replicateFinal and measureMatrix are exported for this),
+G4 fixation-formula Monte Carlo vs closed form (tolerance ~0.03). The multi-type
+stationary-vs-ensemble comparison is a DIAGNOSTIC, not a hard gate. Report gate results
+honestly; a G4 fail is an acceptable outcome, not a thing to fudge. ONLY if G1-G4 pass:
+promote — bump ENGINE_VERSION to 2.3.0, extend runLinkReproducesExactly for the
+2.2.0<->2.3.0 evolution-off pair (mirror the 2.0.0<->2.1.0 anchor-off precedent), add
+run-link fields emitted only when the layer is on (existing tokens stay byte-identical),
+and surface in the Deep tier only with the settled-composition verdict + warnings inside
+#result-printable. The LLM voice layer stays a separate later session.
 
 ## DEPLOY STATE
 - Local repo: YES, main, scoped commits. GitHub: trzz333/customer-model — PUBLIC.
-- Vercel: live at customer-model.council.fyi; auto-deploys latest main on push.
-  Runtime carries the retention schema-bump + teachable anchoring; engine 2.2.0.
-- Open Graph / social unfurl: SET UP (1d53911 + f3b4fc5). layout.tsx exports
-  metadataBase + openGraph + twitter; src/app/opengraph-image.png (1200x630) is the
-  single image source via Next's file convention (no openGraph.images, no public/).
-  Verified in built HTML. Image generator (off-repo): C:\Users\Public\cm_make_og.py.
-- Env vars: NO. v2 is key-free. @anthropic-ai/sdk present but unused (post-spine
-  voice layer). lz-string@1.5.0 is the one runtime dep.
+- Vercel: live at customer-model.council.fyi; auto-deploys latest main on push. The
+  e4025ec deploy is functionally identical to 2.2.0 (the new module is inert, unimported).
+- Open Graph / social unfurl: SET UP; layout.tsx exports metadata; src/app/opengraph-image.png (1200x630) via Next's file convention. Image generator off-repo at C:\Users\Public\cm_make_og.py.
+- Env vars: NO. Still key-free. @anthropic-ai/sdk present but unused (voice layer). lz-string@1.5.0 is the one runtime dep.
 
 ## DECISIONS LOCKED
 Standalone repo, not council. Deterministic, reproducible, auditable core, not an
 LLM-respondent. Templates are CUSTOMER WORLDS applied to a user business. λ default
-2.25, held constant across worlds. Engine evolves by versioned release; ENGINE_VERSION
-stamps every result. NO machine learning. ALWAYS PUSH.
-- Engine FREEZE LIFTED (standing): Claude versions sim.ts without per-edit
-  authorization, champion-challenger discipline (bump ENGINE_VERSION, pre-registered
-  sweep before promote, off/identity paths byte-identical, rollback via git). Never
-  silent runtime auto-tuning.
-- AUTONOMY (standing): Claude makes all engineering AND engineering-adjacent calls,
+2.25. Engine evolves by versioned release; ENGINE_VERSION stamps every result. NO
+machine learning. ALWAYS PUSH. Champion-challenger discipline: bump ENGINE_VERSION,
+pre-registered sweep before promote, off/identity paths byte-identical, rollback via git.
+- EVOLUTION LAYER (2026-06-30): the deterministic-core lock was deliberately reopened by
+  Jeff to add a stochastic selection layer. Hard invariant: stochastic in mechanism,
+  reproducible in output — every run regenerates bit for bit from its seed via seeded CRN
+  substreams. Ships as an ISOLATED challenger, promoted only via a passing sweep. The
+  analytic stationary distribution is the theory anchor. QRE (McKelvey-Palfrey 1995) +
+  risk-averse QRE (Mazumdar 2025) are the STAGED next stochastic-choice lever, not built.
+- AUTONOMY (standing): Claude makes all engineering and engineering-adjacent calls,
   including taste forks and effect-sizing. Surface a question ONLY for a genuine
-  vision/values fork. PRIOR-ART FIRST; when prior art contradicts the plan, prior art
-  wins and the plan is reconciled in writing.
-- MINIMAL BY DEFAULT, depth on demand (standing UI principle, 2026-06-19): the
-  fresh-visit surface carries only what a novice needs to act; named mechanisms and
-  contested levers are revealed one tier up, in the glossary, or only when a
-  faculty-shared run-link turns them on. Tie-breaker for tier-placement calls.
-- Three DEPTH tiers (Student / Teaching / Deep), Finance a toggle in Teaching + Deep.
-  Fresh visit opens BLANK with a How-this-works panel (NO default business, no
-  pre-loaded verdict). A run-link opens fully expanded at the author's shared tier
-  (Teaching/Deep carried in the token as `vw`; a plain student share or any
-  pre-existing link omits it and opens the clean Student read). Student has NO dials.
-  (This reconciles the earlier "run-link opens Student fully expanded" lock: students
-  still land in Student, but a faculty answer key keeps its finish depth. See history
-  2026-06-19b. Reversible in one revert if it cuts against vision.)
-- TASTE FORKS RESOLVED (2026-06-19, Jeff delegated): named retention mechanisms stay
-  out of the Student read beyond their plain labels (name lives in glossary + Teaching
-  terms); the anchoring DIAL stays Teaching/Deep, but the reference-price frame is
-  teachable in the Student read via a gated note + glossary term. See design-note-v2
-  §RESOLVED.
-- Peak-end weights are calibrated science, not a user lever. Term defs are CLICK/TAP
-  popovers (native title fallback), not CSS :hover.
-- LLM voice: single-model, after the deterministic spine, never a committee.
-  Narration-first, cached/pinned to the run-link, labeled the one non-reproducible
-  layer. DIRECTION LOCKED (Jeff accepted the recommendation, 2026-06-19); the build is
-  its own dedicated session with its own pre-registration. Autofill lower priority,
-  only with shown/editable parsed levers. Still unbuilt.
+  vision/values fork. PRIOR-ART FIRST; when prior art contradicts the plan, prior art wins.
+- MINIMAL BY DEFAULT, depth on demand. Three DEPTH tiers (Student / Teaching / Deep),
+  Finance a toggle in Teaching + Deep. Fresh visit opens BLANK with a How-this-works panel.
+  A run-link opens at the author's shared tier (Teaching/Deep carried as `vw`). The
+  evolution layer, when promoted, surfaces in Deep only.
+- LLM voice: single-model, narration-first, cached/pinned to the run-link, labeled the one
+  non-reproducible layer. DIRECTION LOCKED (2026-06-19). Its own dedicated session with its
+  own pre-registration. Still unbuilt.
 
 ## OPEN QUESTIONS
-None genuinely open. The LLM-voice direction was resolved 2026-06-19 (narration-first;
-see NEXT MOVE for the build and its required pre-registration, DECISIONS LOCKED for the
-form, and history 2026-06-19). The retention/anchoring taste forks are also resolved
-(see DECISIONS LOCKED, design-note-v2 §RESOLVED, history).
+None for Jeff. The determinism reopening was his explicit call; the sweep is execution,
+not a fork. Deep-tier-only placement for the evolution surface is Claude's taste call,
+already decided (see design-note-evolution.md). The LLM-voice direction is resolved.
 
 ## NOTES
 1. SAVE BUTTON (permanent invariant, never evicted): Save/Print + Copy read
-   #result-printable; verdict + warning chips carry NO export class and NO toggle, so
-   they survive every saved copy by construction; details.numbers force-opened into both
-   saved paths. Export is gated to the post-run `expanded` state (now set only by a run
-   or a run-link, never on landing), so the only saveable state is the complete one; the
-   old summary-first teaser that used to gate it is retired and does not weaken the gate.
-   Confirmed intact this session: the cold-open restructure gates the run HEADER on
-   `expanded` INSIDE #result-printable and shows a no-Save instructions panel before any
-   run, but the verdict/warning chips in WorldCard are untouched and the Save toolbar
-   still only renders when expanded. Re-confirm on any page.tsx change.
-2. REPO IS PUBLIC. docs/* and AGENTS.md are world-visible; history.md carries some Vercel
-   IDs + a gmail (Jeff accepted this knowingly). No keys in the repo; secrets in env only.
-   The LinkedIn/career brief is kept OFF the repo (download artifact only).
-3. ENGINE VERSIONS: 2.0.0 logit core; 2.1.0 anchoring (anchor-off ≡ 2.0.0); 2.2.0
-   peak-end (identity repWeights {0,0,0,1} ≡ 2.1.0). runLinkReproducesExactly()
-   suppresses the mismatch banner only for the 2.0.0↔2.1.0 anchor-off pair. No 2.3.0:
-   the peak-end negative-peak refinement was tested (sweep-peakend-negpeak.ts) and
-   closed ADMISSIBLE-BUT-NOT-MATERIAL (G2 band caps the gain at 0.93 pt); 2.2.0 stays
-   champion. (Stale: design-note-v2 §2's anchoring "PENDING UI/run-link" line is
-   superseded — anchoring is fully wired incl. run-link persistence.)
-4. BUILD/VALIDATE: cmd shell (PowerShell word-splits && and git args). `npm run
-   typecheck` (NOT npx tsc), then `npm run build`. Scoped git add, commit via
-   `git commit -F C:\Users\Public\cm_commit.txt`, push. Sweeps/smoke run via
-   `node <file>.ts` (sim.ts is a leaf); anything importing business.ts needs
-   `npx --yes tsx`. Root smoke/sweep scripts are excluded from tsconfig by GLOB
-   (smoke*.ts, sweep*.ts), so a new such script won't break typecheck. A bare
-   `npm install <pkg>` PRUNES devDeps and breaks the build; restore with
-   `npm install --include=dev`.
-5. SINGLE SOURCE OF TRUTH: TERM_DEFS (now incl. `anchor`) + ARCH_DEF in business.ts;
-   RETENTION_MECHANISMS owns retention words (FIELDS / RET_DESC / GLOSSARY / retentionOpts
-   derive; legacy entries carry legacy:true, hidden from form + glossary, surfaced only
-   when an incoming link carries them); REP_MEMORY + RepWeights + collapseReputation in
-   sim.ts own peak-end. Edit once.
+   #result-printable; the verdict + warning chips carry NO export class and NO toggle, so
+   they survive every saved copy by construction; export is gated to the post-run expanded
+   state. Confirmed structurally intact this session: no page.tsx or globals.css change (git
+   shows only evolution.ts + design-note-evolution.md). When the evolution layer is surfaced,
+   its settled-composition verdict + fragility warnings MUST live inside #result-printable
+   with no export/toggle class, same as WorldCard. Re-confirm on any page.tsx change.
+2. EVOLUTION MODULE (src/lib/evolution.ts, committed e4025ec, NOT promoted): imports only
+   ./sim. Defaults EVO_DEFAULTS (probeFreq 0.12, fitnessPop 400, fitnessSeed 991, slots 60,
+   beta 6, mutation 0.02, replicates 24; generations 240000 is sized for a long single-chain
+   diagnostic, the ensemble uses fewer per replicate — the sweep tunes these). subRng is the
+   CRN substream. replicateFinal + measureMatrix + fixation are exported for the sweep. A
+   leaf beyond ./sim, so the sweep needs `npx --yes tsx` (extensionless ./src imports).
+3. SWEEP not yet written. Gates G1-G4 in design-note-evolution.md. Root sweep*.ts / smoke*.ts
+   are excluded from tsconfig by glob, so a new sweep file won't break typecheck; delete or
+   leave-unstaged scratch, commit the sweep as reproducibility evidence like sweep-peakend.ts.
+4. PRIOR ART verified 2026-06-30 (do not re-derive): Axelrod ecological + Axelrod-Python;
+   Fudenberg-Imhof 2006 (SSWM stationary, closed form); Traulsen et al 2007 (Fermi/selection
+   temp); Hindersin et al 2019 (fixation numerics); Starsim/Covasim 2024 + L'Ecuyer (CRN
+   per-entity substreams = the order-dependence fix); QRE + RQE (staged next lever).
+5. BUILD/VALIDATE: cmd shell (PowerShell mangles && and git args). `npm run typecheck` then
+   `npm run build`. Scoped git add (never -A), commit via `git commit -F C:\Users\Public\
+   cm_commit.txt` then delete it in the same chained command, push. A bare `npm install <pkg>`
+   prunes devDeps and breaks the build; restore with `npm install --include=dev`.
